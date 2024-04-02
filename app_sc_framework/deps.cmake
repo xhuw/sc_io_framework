@@ -23,7 +23,7 @@ if(NOT EXISTS ${XMOS_SANDBOX_DIR}/lib_uart)
     FetchContent_Declare(
         lib_uart
         GIT_REPOSITORY git@github.com:xmos/lib_uart
-        GIT_TAG develop
+        GIT_TAG master
         SOURCE_DIR ${XMOS_SANDBOX_DIR}/lib_uart
     )
     FetchContent_Populate(lib_uart)
@@ -43,7 +43,7 @@ if(NOT EXISTS ${XMOS_SANDBOX_DIR}/lib_neopixel)
     FetchContent_Declare(
         lib_neopixel
         GIT_REPOSITORY git@github.com:xmos/lib_neopixel
-        GIT_TAG develop
+        GIT_TAG master
         SOURCE_DIR ${XMOS_SANDBOX_DIR}/lib_neopixel
     )
     FetchContent_Populate(lib_neopixel)
