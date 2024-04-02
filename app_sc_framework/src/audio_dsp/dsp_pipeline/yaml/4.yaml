@@ -1,8 +1,15 @@
-name: dsp_thread
+name: volume_control
 yaml_dict:
   includes:
   - stdint.h
+  - stages/adsp_module.h
   module:
-    dsp_thread:
-      max_cycles:
-        type: uint32_t
+    volume_control:
+      gain:
+        type: int32_t
+      mute:
+        type: uint8_t
+      slew_shift:
+        type: int32_t
+      target_gain:
+        type: int32_t

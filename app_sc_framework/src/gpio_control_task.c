@@ -5,11 +5,12 @@
 #include <string.h>
 #include <platform.h>
 
-#include "adsp_pipeline.h"
-#include "adsp_module.h"
-#include "adsp_control.h"
+#include "stages/adsp_pipeline.h"
+#include "stages/adsp_module.h"
+#include "stages/adsp_control.h"
 #include "cmds.h"
-#include "adsp.h"
+#include "dsp/adsp.h"
+#include "adsp_instance_id_auto.h"
 
 
 extern adsp_pipeline_t * m_dsp;
@@ -20,7 +21,7 @@ extern adsp_pipeline_t * m_dsp;
 
 
 void set_volume(int32_t vol){
-    int32_t volume_shift = -SIG_EXP - 10; // 10 bit ADC 
+    int32_t volume_shift = -SIG_EXP - 10; // 10 bit ADC
     vol <<= volume_shift;
     // Need to do log conversion
 

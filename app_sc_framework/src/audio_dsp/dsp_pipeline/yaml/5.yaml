@@ -1,16 +1,15 @@
-name: biquad
+name: volume_control
 yaml_dict:
   includes:
   - stdint.h
   - stages/adsp_module.h
   module:
-    biquad:
-      filter_coeffs:
-        attribute: DWORD_ALIGNED
-        size: 5
+    volume_control:
+      gain:
         type: int32_t
-      left_shift:
-        type: int
-      reserved:
-        size: 3
+      mute:
+        type: uint8_t
+      slew_shift:
+        type: int32_t
+      target_gain:
         type: int32_t
