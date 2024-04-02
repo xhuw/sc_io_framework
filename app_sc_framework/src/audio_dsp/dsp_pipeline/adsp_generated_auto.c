@@ -365,8 +365,8 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
 		{ .channel_idx = 0, .data_idx = 4, .frame_size = 1},
 	};
 	static adsp_mux_elem_t adsp_auto_out_mux_cfgs[] = {
-		{ .channel_idx = 0, .data_idx = 2, .frame_size = 1},
 		{ .channel_idx = 0, .data_idx = 3, .frame_size = 1},
+		{ .channel_idx = 0, .data_idx = 2, .frame_size = 1},
 		{ .channel_idx = 0, .data_idx = 0, .frame_size = 1},
 		{ .channel_idx = 0, .data_idx = 1, .frame_size = 1},
 		{ .channel_idx = 0, .data_idx = 4, .frame_size = 1},
@@ -386,7 +386,7 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
 	adsp_auto.n_link = 1;
 	adsp_auto.modules = adsp_auto_modules;
 	adsp_auto.n_modules = 25;
-	static pipeline_config_t config0 = { .checksum = {134, 97, 95, 172, 148, 83, 76, 76, 151, 194, 11, 121, 199, 204, 157, 79} };
+	static pipeline_config_t config0 = { .checksum = {28, 90, 0, 69, 70, 105, 179, 92, 210, 124, 231, 249, 187, 87, 65, 11} };
 
             static pipeline_state_t state0;
             static uint8_t memory0[_ADSP_MAX(1, PIPELINE_REQUIRED_MEMORY(0, 0, 1))];
