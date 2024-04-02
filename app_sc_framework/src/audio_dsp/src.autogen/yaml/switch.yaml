@@ -1,6 +1,0 @@
-module:
-  switch:
-    position:
-      type: int32_t
-includes:
-  - "stdint.h"

@@ -1,6 +1,0 @@
-module:
-  fixed_gain:
-    gain:
-      type: int32_t
-includes:
-  - "stdint.h"

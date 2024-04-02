@@ -1,15 +1,2 @@
-name: volume_control
-yaml_dict:
-  includes:
-  - stdint.h
-  - stages/adsp_module.h
-  module:
-    volume_control:
-      gain:
-        type: int32_t
-      mute:
-        type: uint8_t
-      slew_shift:
-        type: int32_t
-      target_gain:
-        type: int32_t
+name: fork
+yaml_dict: null
