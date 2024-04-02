@@ -62,7 +62,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         // Drive VU on neopixels
         vu_to_pixels(control_input, np_state);
         while(!neopixel_drive_pins(np_state, p_neopixel)); // Takes about 1.2 ms for 24 neopixels
-        
+
         // Read ADCs for pot input
         unsigned adc[NUM_ADC_POTS] = {0};
         unsigned adc_dir[NUM_ADC_POTS] = {0};
@@ -76,9 +76,9 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
             control_input->output_gain[ch] = (int64_t)adc[ch] * (int64_t)INT_MAX / (ADC_LUT_SIZE - 1);
         }
         printf("\n");
-        set_volume(adc[0]);
+        // set_volume(adc[0]);
 
-        
+
         // Read buttons
         unsigned pb = i_gpio_mc_buttons.input();
         if((pb & 0x1) == 0){ // Button 0 pressed

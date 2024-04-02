@@ -3,13 +3,13 @@
 
 // This file contains defines relating to the USB build only
 
-#ifndef _XUA_CONF_H_ 
+#ifndef _XUA_CONF_H_
 #define _XUA_CONF_H_
 
 #define NUM_USB_CHAN_OUT 2
 #define NUM_USB_CHAN_IN 2
-#define I2S_CHANS_DAC 2
-#define I2S_CHANS_ADC 2
+#define I2S_CHANS_DAC 4
+#define I2S_CHANS_ADC 4
 #define MCLK_441 (256 * 44100)
 #define MCLK_48 (256 * 48000)
 #define MIN_FREQ 48000

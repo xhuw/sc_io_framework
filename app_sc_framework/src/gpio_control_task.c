@@ -10,6 +10,7 @@
 #include "stages/adsp_control.h"
 #include "cmds.h"
 #include "dsp/adsp.h"
+#include "adsp_instance_id_auto.h"
 
 
 extern adsp_pipeline_t * m_dsp;

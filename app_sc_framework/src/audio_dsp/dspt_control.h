@@ -15,5 +15,5 @@ typedef struct
     uint8_t direction;
 }control_req_t;
 
-DECLARE_JOB(dsp_control_thread, (chanend_t, module_instance_t**, size_t));
+DECLARE_JOB(dsp_control_thread, (chanend_t, module_instance_t*, size_t));
 

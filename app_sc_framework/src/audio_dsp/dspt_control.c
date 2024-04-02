@@ -17,7 +17,7 @@
 #define SERVICER_COMMAND_RETRY (64) // From XVF3800 since reusing host app
 
 #define MAX_CONTROL_PAYLOAD_LEN 256
-void dsp_control_thread(chanend_t c_control, module_instance_t** modules, size_t num_modules)
+void dsp_control_thread(chanend_t c_control, module_instance_t* modules, size_t num_modules)
 {
     int8_t payload[MAX_CONTROL_PAYLOAD_LEN] = {0};
     uint8_t prev_write_cmd_status = 0;

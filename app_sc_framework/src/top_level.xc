@@ -24,8 +24,12 @@ on tile[0]: port p_for_mclk_count = XS1_PORT_16B;
 on tile[0]: port p_for_mclk_in = XS1_PORT_1D;
 on tile[0]: clock usb_mclk_in_clk = XS1_CLKBLK_2;
 
-on tile[1]: buffered out port:32 p_i2s_dac[]    = {PORT_I2S_DAC0};   /* I2S Data-line(s) */
-on tile[1]: buffered in port:32 p_i2s_adc[]     = {PORT_I2S_ADC0};   /* I2S Data-line(s) */
+on tile[1]: buffered out port:32 p_i2s_dac[]    = {
+    PORT_I2S_DAC0, PORT_I2S_DAC1
+};   /* I2S Data-line(s) */
+on tile[1]: buffered in port:32 p_i2s_adc[]     = {
+    PORT_I2S_ADC0, PORT_I2S_ADC1
+};   /* I2S Data-line(s) */
 on tile[1]: buffered out port:32 p_lrclk        = PORT_I2S_LRCLK;    /* I2S Bit-clock */
 on tile[1]: buffered out port:32 p_bclk         = PORT_I2S_BCLK;     /* I2S L/R-clock */
 on tile[1]: clock clk_audio_mclk                = XS1_CLKBLK_1;
@@ -60,7 +64,7 @@ int main() {
 
             /* XUA chans */
             chan c_ep_out[2];
-            chan c_ep_in[3];            
+            chan c_ep_in[3];
             chan c_sof;
             chan c_aud_ctl;
 
@@ -77,7 +81,7 @@ int main() {
 
             par{
                 XUD_Main(c_ep_out, 2, c_ep_in, 3,
-                     c_sof, epTypeTableOut, epTypeTableIn, 
+                     c_sof, epTypeTableOut, epTypeTableIn,
                      XUD_SPEED_HS, XUD_PWR_SELF);
                 XUA_Endpoint0(c_ep_out[0], c_ep_in[0], c_aud_ctl, null, null, null, null);
                 XUA_Buffer(c_ep_out[1], c_ep_in[2], c_ep_in[1], c_sof, c_aud_ctl, p_for_mclk_count, c_aud);
@@ -92,7 +96,7 @@ int main() {
                 }
             }
         }
-        on tile[1]: unsafe{            
+        on tile[1]: unsafe{
             // Local comms
             chan c_adc;
             interface uart_tx_if i_uart_tx;
@@ -134,7 +138,7 @@ int main() {
                 dsp_task_1(c_dsp, control_input_ptr);
                 adc_pot_task(c_adc, p_adc, adc_pot_state);
                 gpio_control_task(  i_uart_tx,
-                                    c_adc, control_input_ptr, 
+                                    c_adc, control_input_ptr,
                                     p_neopixel, cb_neo,
                                     i_gpio_mc_buttons[0],
                                     i_gpio_mc_leds[0]);
