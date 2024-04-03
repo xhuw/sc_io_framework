@@ -52,7 +52,6 @@ on tile[1]: port p_adc[]                        = {PORT_I2S_ADC2, PORT_I2S_ADC3}
 int main() {
     // Cross tile comms
     chan c_aud;
-    chan c_dsp;
     interface i2c_master_if i2c[1];
     input_gpio_if i_gpio_mc_buttons[1];
     output_gpio_if i_gpio_mc_leds[1];
@@ -85,8 +84,6 @@ int main() {
                      XUD_SPEED_HS, XUD_PWR_SELF);
                 XUA_Endpoint0(c_ep_out[0], c_ep_in[0], c_aud_ctl, null, null, null, null);
                 XUA_Buffer(c_ep_out[1], c_ep_in[2], c_ep_in[1], c_sof, c_aud_ctl, p_for_mclk_count, c_aud);
-
-                dsp_task_0(c_dsp);
 
                 [[combine]]
                 par{
@@ -135,7 +132,6 @@ int main() {
 
             par{
                 XUA_AudioHub(c_aud, clk_audio_mclk, clk_audio_bclk, p_mclk_in, p_lrclk, p_bclk, p_i2s_dac, p_i2s_adc);
-                dsp_task_1(c_dsp, control_input_ptr);
                 adc_pot_task(c_adc, p_adc, adc_pot_state);
                 gpio_control_task(  i_uart_tx,
                                     c_adc, control_input_ptr,
