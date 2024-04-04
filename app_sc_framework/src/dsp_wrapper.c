@@ -17,7 +17,6 @@ typedef struct vu_state_t{
 
 #define ABS(x) ((x)<0 ? (-x) : (x))
 
-volatile chanend_t c_dsp_synch_end = 0;
 
 volatile int32_t samples_from_host_g[NUM_USB_CHAN_OUT] = {0};
 volatile int32_t samples_to_host_g[NUM_USB_CHAN_IN] = {0};
@@ -26,9 +25,6 @@ volatile int32_t output_gain_g[NUM_USB_CHAN_OUT];
 void UserBufferManagementInit(unsigned sampFreq)
 {
     printstrln("UserBufferManagementInit");
-    while(c_dsp_synch_end == 0){
-        // Wait for valid chanend
-    }
 }
 
 void UserBufferManagement(unsigned sampsFromUsbToAudio[], unsigned sampsFromAudioToUsb[]){

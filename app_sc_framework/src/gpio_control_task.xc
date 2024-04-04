@@ -9,8 +9,8 @@
 #include "gpio_control_task.h"
 #include "neopixel.h"
 #include "adc_pot.h"
-#include "dsp.h"
-
+#include "app_dsp.h"
+#include "dsp/adsp.h"
 
 #define VU_GREEN    0x000010
 #define VU_RED      0x002000
@@ -60,6 +60,24 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
     const uint8_t msg[] = "Hello world!\n";
     unsigned msg_idx = 0;
 
+    // DSP control
+    app_dsp_input_control_t dsp_input = {0};
+    dsp_input.game_loopback_switch_pos = 1;
+    dsp_input.mic_vol = UNITY_VOLUME;
+    dsp_input.mic_mute = 0;
+    dsp_input.music_vol = UNITY_VOLUME;
+    dsp_input.music_mute = 0;
+    dsp_input.monitor_vol = UNITY_VOLUME;
+    dsp_input.monitor_mute = 0;
+    dsp_input.output_vol = UNITY_VOLUME;
+    dsp_input.output_mute = 0;
+    dsp_input.reverb_level = 0;
+    dsp_input.reverb_enable = 1;
+    dsp_input.denoise_enable = 1;
+    dsp_input.ducking_enable = 1;
+
+    app_dsp_output_control_t dsp_output = {0};
+
     // Main control super loop
     while(1)unsafe{
         // Drive VU on neopixels
@@ -90,10 +108,19 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         // set_volume(pow_volume << volume_shift);
 
         for(int i = 0; i < 3; i++){
+        app_dsp_do_control(dsp_input, dsp_output);
+        printf("Envelope %6d %6d\n", dsp_output.mic_envelope, dsp_output.headphone_envelope);
+
         // Read buttons
             unsigned pb = i_gpio_mc_buttons[i].input();
             // Drive MC leds
             i_gpio_mc_leds[i].output(pb);
+        unsigned pb = i_gpio_mc_buttons.input();
+        if((pb & 0x1) == 0){ // Button 0 pressed
+            dsp_input.output_vol = UNITY_VOLUME / 2;
+        } else {
+            dsp_input.output_vol = UNITY_VOLUME;
+
         }
 
     
