@@ -100,6 +100,11 @@ void app_dsp_do_control(REFERENCE_PARAM(app_dsp_input_control_t, input), REFEREN
     do_read(mic_vu_stage_index, CMD_ENVELOPE_DETECTOR_RMS_ENVELOPE, sizeof(int32_t), &output->mic_envelope);
     do_read(out_vu_stage_index, CMD_ENVELOPE_DETECTOR_RMS_ENVELOPE, sizeof(int32_t), &output->headphone_envelope);
 
+    uint8_t thread_ids[] = auto_thread_stage_indices;
+    for(int i = 0; i < sizeof(thread_ids) / sizeof(*thread_ids); ++i) {
+        do_read(thread_ids[i], CMD_DSP_THREAD_MAX_CYCLES, sizeof(uint32_t), &output->max_thread_ticks[i]);
+    }
+
     // mute do after to reduce blocking
     do_write(mic_vc_stage_index, CMD_VOLUME_CONTROL_MUTE, sizeof(int8_t), &input->mic_mute);
     do_write(music_vc_stage_index, CMD_VOLUME_CONTROL_MUTE, sizeof(int8_t), &input->music_mute);

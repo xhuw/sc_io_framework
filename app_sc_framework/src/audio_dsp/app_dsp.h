@@ -35,10 +35,13 @@ typedef struct {
     int32_t ducking_enable;
 } app_dsp_input_control_t;
 
+#define _MAX_XCORE_THREADS 8
+
 // control outputs, from DSP to control thread.
 typedef struct {
     int32_t mic_envelope;
     int32_t headphone_envelope;
+    uint32_t max_thread_ticks[_MAX_XCORE_THREADS];
 } app_dsp_output_control_t;
 
 void app_dsp_do_control(REFERENCE_PARAM(app_dsp_input_control_t, input), REFERENCE_PARAM(app_dsp_output_control_t, output));
