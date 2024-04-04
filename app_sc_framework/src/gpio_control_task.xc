@@ -9,6 +9,8 @@
 #include "gpio_control_task.h"
 #include "neopixel.h"
 #include "adc_pot.h"
+#include "dsp.h"
+
 
 #define VU_GREEN    0x000010
 #define VU_RED      0x002000
@@ -43,8 +45,8 @@ unsafe void vu_to_pixels(control_input_t * unsafe control_input, neopixel_state 
 void gpio_control_task( client uart_tx_if i_uart_tx,
                         chanend c_adc, control_input_t * unsafe control_input,
                         out buffered port:32 p_neopixel, clock cb_neo,
-                        client input_gpio_if i_gpio_mc_buttons,
-                        client output_gpio_if i_gpio_mc_leds
+                        client input_gpio_if i_gpio_mc_buttons[],
+                        client output_gpio_if i_gpio_mc_leds[]
                         ){
     printf("gpio_control_task\n");
 
@@ -76,18 +78,25 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
             control_input->output_gain[ch] = (int64_t)adc[ch] * (int64_t)INT_MAX / (ADC_LUT_SIZE - 1);
         }
         printf("\n");
-        // set_volume(adc[0]);
 
+        q8_24 lin_volume = adc[0] << (24 - POT_NUM_BITS);
+        q8_24 pow_volume = dsp_math_exp(lin_volume) - dsp_math_exp(0);
+        printf("lin: %d pow: %d\n", lin_volume, pow_volume);
 
+// TODO work out clash between lib_dsp and lib_audio_dsp
+#define SIG_EXP (-27)
+        int32_t volume_shift = -SIG_EXP - 24; 
+
+        set_volume(pow_volume << volume_shift);
+
+        for(int i = 0; i < 3; i++){
         // Read buttons
-        unsigned pb = i_gpio_mc_buttons.input();
-        if((pb & 0x1) == 0){ // Button 0 pressed
-            //Nothing for now
+            unsigned pb = i_gpio_mc_buttons[i].input();
+            // Drive MC leds
+            i_gpio_mc_leds[i].output(pb);
         }
 
-        // Drive MC leds
-        i_gpio_mc_leds.output(pb);
-
+    
 
         // Send a character to the UART
         i_uart_tx.write(msg[msg_idx]);

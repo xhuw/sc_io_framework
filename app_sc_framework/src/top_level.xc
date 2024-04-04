@@ -54,8 +54,8 @@ int main() {
     chan c_aud;
     chan c_dsp;
     interface i2c_master_if i2c[1];
-    input_gpio_if i_gpio_mc_buttons[1];
-    output_gpio_if i_gpio_mc_leds[1];
+    input_gpio_if i_gpio_mc_buttons[3];
+    output_gpio_if i_gpio_mc_leds[3];
 
     par
     {
@@ -91,8 +91,8 @@ int main() {
                 [[combine]]
                 par{
                     i2c_master(i2c, 1, p_scl, p_sda, 100);
-                    output_gpio(i_gpio_mc_leds, 1, p_mc_leds, null);
-                    input_gpio(i_gpio_mc_buttons, 1, p_mc_buttons, null);
+                    output_gpio(i_gpio_mc_leds, 3, p_mc_leds, null);
+                    input_gpio(i_gpio_mc_buttons, 3, p_mc_buttons, null);
                 }
             }
         }
@@ -140,8 +140,8 @@ int main() {
                 gpio_control_task(  i_uart_tx,
                                     c_adc, control_input_ptr,
                                     p_neopixel, cb_neo,
-                                    i_gpio_mc_buttons[0],
-                                    i_gpio_mc_leds[0]);
+                                    i_gpio_mc_buttons,
+                                    i_gpio_mc_leds);
 
                 app_dsp_main_local_control();
 

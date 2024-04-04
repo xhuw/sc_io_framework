@@ -6,7 +6,8 @@
 #pragma once
 
 #define NUM_ADC_POTS        2
-#define ADC_LUT_SIZE        1024
+#define POT_NUM_BITS        10
+#define ADC_LUT_SIZE        (1 << POT_NUM_BITS)
 #define ADC_FILTER_DEPTH    32 
 #define ADC_HYSTERESIS      3
 

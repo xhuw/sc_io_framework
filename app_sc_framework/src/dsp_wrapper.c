@@ -8,6 +8,7 @@
 #include "xua_conf.h"
 #include "dsp_wrapper.h"
 #include "app_dsp.h"
+#include "dsp.h"
 
 
 typedef struct vu_state_t{
@@ -70,12 +71,16 @@ void UserBufferManagement(unsigned sampsFromUsbToAudio[], unsigned sampsFromAudi
 void process_vu(int32_t *samples, size_t n_ch, vu_state_t vu_state[NUM_USB_CHAN_OUT]){
     for(int ch = 0; ch < n_ch; ch++){
         // Apply decay
-        const int32_t decay_constant = (int32_t)((float)((1<<31) - 1) * 0.9990);
+        const int32_t decay_constant = (int32_t)((float)((1<<31) - 1) * 0.9890);
         vu_state[ch].vu = ((int64_t)decay_constant * (int64_t)vu_state[ch].vu) >> 31;
+        
         // Calc instantaneous approx VU
-        int32_t abs_sq = ((int64_t)samples[ch] * (int64_t)samples[ch]) >> 31; // Square
-        if(abs_sq > vu_state[ch].vu){
-            vu_state[ch].vu = abs_sq;
+        uint32_t abs_sample = samples[ch] > 0 ? samples[ch] : - samples[ch];
+        uq8_24 abs_sample_uq8_24 = abs_sample >> (7 - 6);
+        q8_24 log_vu = dsp_math_log(abs_sample_uq8_24 + (1 << 24));
+
+        if(log_vu > vu_state[ch].vu){
+            vu_state[ch].vu = log_vu;
         }
     }
 }
@@ -99,7 +104,7 @@ void dsp_task_1(chanend_t c_dsp, control_input_t *control_input){
         output_gain_g[0] = control_input->output_gain[0];
         output_gain_g[1] = control_input->output_gain[1];
 
-        // Now send them to dsp_task_0
+        // Now send them to dsp_task_0 in case we need them for processing on tile[0]
         transacting_chanend_t tc = chan_init_transaction_master(c_dsp);
         t_chan_out_word(&tc, NUM_USB_CHAN_OUT);
         t_chan_out_buf_word(&tc, (uint32_t*)samples_from_host_g, NUM_USB_CHAN_OUT);
