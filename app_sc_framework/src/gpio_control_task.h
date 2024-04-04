@@ -9,11 +9,13 @@
 #include "xua_conf.h"
 #include "app_dsp.h"
 
-typedef struct control_input_t
-{
-    uint32_t vu[NUM_USB_CHAN_OUT];
-    int32_t output_gain[NUM_USB_CHAN_OUT];
-}control_input_t;
+#warning THIS SHOULD BE BROUGHT IN FROM ADSP.H
+#define SIG_QBITS 27
+#define UNITY_VOLUME (1 << SIG_QBITS)
+
+
+int32_t control_to_volume_setting(unsigned vol_setting);
+unsigned envelope_to_vu(int32_t envelope);
 
 #ifdef __XC__
 typedef interface adsp_control_if {

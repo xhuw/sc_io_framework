@@ -7,7 +7,6 @@
 #include "app_config.h"
 #include "adc_pot.h"
 #include "gpio_control_task.h"
-#include "dsp_wrapper.h"
 #include "xua_conf.h"
 extern "C"{
     #include "sw_pll.h"

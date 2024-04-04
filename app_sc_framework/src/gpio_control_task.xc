@@ -16,32 +16,30 @@
 #define VU_RED      0x002000
 #define VU_OFF      0x000000
 
-#define UNITY_VOLUME (1 << Q_SIG)
 
-// unsafe void vu_to_pixels(control_input_t * unsafe control_input, neopixel_state &np_state){
-//     for(int i = 0; i < 12; i++){
-//         int32_t threshold = 1 << (2 * i + 7);
-//         if(control_input->vu[0] > threshold){
-//             if(i < 8){
-//                 np_state.data[i] = VU_GREEN;
-//             } else {
-//                 np_state.data[i] = VU_RED;
-//             }
-//         } else {
-//             np_state.data[i] = VU_OFF;
-//         }
+void vu_to_pixels(unsigned levels[2], neopixel_state &np_state){
+    for(int i = 0; i < VU_NUM_PIXELS; i++){
+        if(levels[0] > i){
+            if(i < VU_NUM_PIXELS * 3 / 4){
+                np_state.data[i] = VU_GREEN;
+            } else {
+                np_state.data[i] = VU_RED;
+            }
+        } else {
+            np_state.data[i] = VU_OFF;
+        }
 
-//         if(control_input->vu[1] > threshold){
-//             if(i < 8){
-//                 np_state.data[23 - i] = VU_GREEN;
-//             } else {
-//                 np_state.data[23 - i] = VU_RED;
-//             }
-//         } else {
-//             np_state.data[23 - i] = VU_OFF;
-//         }
-//     }
-// }
+        if(levels[1] > i){
+            if(i < VU_NUM_PIXELS * 3 / 4){
+                np_state.data[(VU_NUM_PIXELS * 2 - 1) - i] = VU_GREEN;
+            } else {
+                np_state.data[(VU_NUM_PIXELS * 2 - 1) - i] = VU_RED;
+            }
+        } else {
+            np_state.data[(VU_NUM_PIXELS * 2- 1) - i] = VU_OFF;
+        }
+    }
+}
 
 
 void gpio_control_task( client uart_tx_if i_uart_tx,
@@ -55,8 +53,10 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
 
     // Neopixel setup
     neopixel_state np_state = {0};
-    const unsigned length = 24;
+    const unsigned length = VU_NUM_PIXELS * 2;
     neopixel_init(np_state, length, p_neopixel, cb_neo, 3);
+    unsigned levels[2];
+        
 
     // UART data
     const uint8_t msg[] = "Hello world!\n";
@@ -82,35 +82,27 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
 
     // Main control super loop
     while(1)unsafe{
-        // Drive VU on neopixels
-        // vu_to_pixels(control_input, np_state);
-        while(!neopixel_drive_pins(np_state, p_neopixel)); // Takes about 1.2 ms for 24 neopixels
-
         // Read ADCs for pot input
-        unsigned adc[NUM_ADC_POTS] = {0};
-        unsigned adc_dir[NUM_ADC_POTS] = {0};
-        printf("ADC ");
+        unsigned qadc[NUM_ADC_POTS] = {0};
         for(unsigned ch = 0; ch < NUM_ADC_POTS; ch++){
             c_qadc <: (uint32_t)(ADC_CMD_READ | ch);
-            c_qadc :> adc[ch];
-            c_qadc <: (uint32_t)(ADC_CMD_POT_GET_DIR | ch);
-            c_qadc :> adc_dir[ch];
-            printf("ch %u: %u (%u) ", ch, adc[ch], adc_dir[ch]);
+            c_qadc :> qadc[ch];
         }
-        printf("\n");
 
-        // q8_24 lin_volume = adc[0] << (24 - POT_NUM_BITS);
-        // q8_24 pow_volume = dsp_math_exp(lin_volume) - dsp_math_exp(0);
-        // printf("lin: %d pow: %d\n", lin_volume, pow_volume);
-
-// TODO work out clash between lib_dsp and lib_audio_dsp
-#define SIG_EXP (-27)
-        int32_t volume_shift = -SIG_EXP - 24; 
-
-        // set_volume(pow_volume << volume_shift);
+        // Convert to volume signals  
+        dsp_input.monitor_vol = control_to_volume_setting(qadc[0]);
+        dsp_input.output_vol = control_to_volume_setting(qadc[1]);
 
         dsp_output = i_adsp_control.do_control(dsp_input);
+
+
+        // Convert envelopes to VU
         printf("Envelope %6d %6d\n", dsp_output.mic_envelope, dsp_output.headphone_envelope);
+        levels[0] = envelope_to_vu(dsp_output.headphone_envelope);
+        levels[1] = envelope_to_vu(dsp_output.mic_envelope);
+        vu_to_pixels(levels, np_state);
+        while(!neopixel_drive_pins(np_state, p_neopixel)); // Takes about 1.2 ms for 24 neopixels
+
 
         unsigned pb = i_gpio_mc_buttons[0].input();
         if(pb == 0){ // Button 0 pressed
@@ -135,6 +127,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
 
 
 void gpio_control_slave(server interface adsp_control_if i_adsp_control){
+
     while(1){
         select{
             case i_adsp_control.do_control(app_dsp_input_control_t dsp_input) -> app_dsp_output_control_t dsp_output:

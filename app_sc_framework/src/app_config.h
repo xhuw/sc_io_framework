@@ -11,6 +11,8 @@
 #define ADC_FILTER_DEPTH    32 
 #define ADC_HYSTERESIS      3
 
+#define VU_NUM_PIXELS       12
+
 #define UART_BAUD_RATE  115200
 
 
