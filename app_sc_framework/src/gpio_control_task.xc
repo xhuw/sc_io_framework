@@ -16,34 +16,35 @@
 #define VU_RED      0x002000
 #define VU_OFF      0x000000
 
-unsafe void vu_to_pixels(control_input_t * unsafe control_input, neopixel_state &np_state){
-    for(int i = 0; i < 12; i++){
-        int32_t threshold = 1 << (2 * i + 7);
-        if(control_input->vu[0] > threshold){
-            if(i < 8){
-                np_state.data[i] = VU_GREEN;
-            } else {
-                np_state.data[i] = VU_RED;
-            }
-        } else {
-            np_state.data[i] = VU_OFF;
-        }
+// unsafe void vu_to_pixels(control_input_t * unsafe control_input, neopixel_state &np_state){
+//     for(int i = 0; i < 12; i++){
+//         int32_t threshold = 1 << (2 * i + 7);
+//         if(control_input->vu[0] > threshold){
+//             if(i < 8){
+//                 np_state.data[i] = VU_GREEN;
+//             } else {
+//                 np_state.data[i] = VU_RED;
+//             }
+//         } else {
+//             np_state.data[i] = VU_OFF;
+//         }
 
-        if(control_input->vu[1] > threshold){
-            if(i < 8){
-                np_state.data[23 - i] = VU_GREEN;
-            } else {
-                np_state.data[23 - i] = VU_RED;
-            }
-        } else {
-            np_state.data[23 - i] = VU_OFF;
-        }
-    }
-}
+//         if(control_input->vu[1] > threshold){
+//             if(i < 8){
+//                 np_state.data[23 - i] = VU_GREEN;
+//             } else {
+//                 np_state.data[23 - i] = VU_RED;
+//             }
+//         } else {
+//             np_state.data[23 - i] = VU_OFF;
+//         }
+//     }
+// }
 
 
 void gpio_control_task( client uart_tx_if i_uart_tx,
-                        chanend c_adc, control_input_t * unsafe control_input,
+                        chanend c_qadc,
+                        client interface adsp_control_if i_adsp_control,
                         out buffered port:32 p_neopixel, clock cb_neo,
                         client input_gpio_if i_gpio_mc_buttons[],
                         client output_gpio_if i_gpio_mc_leds[]
@@ -62,7 +63,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
     // Main control super loop
     while(1)unsafe{
         // Drive VU on neopixels
-        vu_to_pixels(control_input, np_state);
+        // vu_to_pixels(control_input, np_state);
         while(!neopixel_drive_pins(np_state, p_neopixel)); // Takes about 1.2 ms for 24 neopixels
 
         // Read ADCs for pot input
@@ -70,12 +71,11 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         unsigned adc_dir[NUM_ADC_POTS] = {0};
         printf("ADC ");
         for(unsigned ch = 0; ch < NUM_ADC_POTS; ch++){
-            c_adc <: (uint32_t)(ADC_CMD_READ | ch);
-            c_adc :> adc[ch];
-            c_adc <: (uint32_t)(ADC_CMD_POT_GET_DIR | ch);
-            c_adc :> adc_dir[ch];
+            c_qadc <: (uint32_t)(ADC_CMD_READ | ch);
+            c_qadc :> adc[ch];
+            c_qadc <: (uint32_t)(ADC_CMD_POT_GET_DIR | ch);
+            c_qadc :> adc_dir[ch];
             printf("ch %u: %u (%u) ", ch, adc[ch], adc_dir[ch]);
-            control_input->output_gain[ch] = (int64_t)adc[ch] * (int64_t)INT_MAX / (ADC_LUT_SIZE - 1);
         }
         printf("\n");
 
@@ -87,7 +87,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
 #define SIG_EXP (-27)
         int32_t volume_shift = -SIG_EXP - 24; 
 
-        set_volume(pow_volume << volume_shift);
+        // set_volume(pow_volume << volume_shift);
 
         for(int i = 0; i < 3; i++){
         // Read buttons
@@ -105,6 +105,19 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         }
 
         delay_milliseconds(10);
+    }
+}
+
+
+
+void gpio_control_slave(server interface adsp_control_if i_adsp_control){
+
+    app_dsp_input_control_t dummy;
+    while(1){
+        select{
+            case i_adsp_control.dummy():
+            break;
+        }
     }
 }
 
