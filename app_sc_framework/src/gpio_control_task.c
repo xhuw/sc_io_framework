@@ -23,14 +23,14 @@ int32_t control_to_volume_setting(unsigned vol_setting){
 
 
 unsigned envelope_to_vu(int32_t envelope){
-    uq8_24 envelope_uq = (uq8_24)envelope >> (SIG_QBITS - 24);
+    uq8_24 envelope_uq = (uq8_24)envelope >> (SIG_QBITS - 24 - 2); // -2 fudge factor from max envelope observed
     q8_24 log_envelope = dsp_math_log(envelope_uq);
     
     int32_t vu = log_envelope >> 24;
-    // vu += (VU_NUM_PIXELS - 1);
+    vu += VU_NUM_PIXELS;
 
     if(vu < 0){
-        // vu = 0;
+        vu = 0;
     }
 
     printf("envelope: %ld log_envelope: %ld vu: %ld\n", envelope, log_envelope, vu);
