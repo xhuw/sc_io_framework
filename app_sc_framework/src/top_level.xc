@@ -8,27 +8,23 @@
 #include "adc_pot.h"
 #include "gpio_control_task.h"
 #include "xua_conf.h"
-extern "C"{
-    #include "sw_pll.h"
-}
 #include "i2c.h"
-#include "xua_conf.h"
 #include "xua.h"
 #include "xud.h"
 #include "app_dsp.h"
 
 
 // Audio resources for USB and I2S
-on tile[0]: port p_for_mclk_count = XS1_PORT_16B;
-on tile[0]: port p_for_mclk_in = XS1_PORT_1D;
-on tile[0]: clock usb_mclk_in_clk = XS1_CLKBLK_2;
+on tile[0]: port p_for_mclk_count               = XS1_PORT_16B;
+on tile[0]: port p_for_mclk_in                  = XS1_PORT_1D;
+on tile[0]: clock usb_mclk_in_clk               = XS1_CLKBLK_2;
 
 on tile[1]: buffered out port:32 p_i2s_dac[]    = {
-    PORT_I2S_DAC0, PORT_I2S_DAC1
-};   /* I2S Data-line(s) */
+                                                PORT_I2S_DAC0, PORT_I2S_DAC1
+                                                };   /* I2S Data-line(s) */
 on tile[1]: buffered in port:32 p_i2s_adc[]     = {
-    PORT_I2S_ADC0, PORT_I2S_ADC1
-};   /* I2S Data-line(s) */
+                                                PORT_I2S_ADC0, PORT_I2S_ADC1
+                                                };   /* I2S Data-line(s) */
 on tile[1]: buffered out port:32 p_lrclk        = PORT_I2S_LRCLK;    /* I2S Bit-clock */
 on tile[1]: buffered out port:32 p_bclk         = PORT_I2S_BCLK;     /* I2S L/R-clock */
 on tile[1]: clock clk_audio_mclk                = XS1_CLKBLK_1;
@@ -45,13 +41,14 @@ on tile[0]: out port p_mc_leds                  = XS1_PORT_4F;      // 4 LEDs on
 on tile[0]: out buffered port:32 p_neopixel     = XS1_PORT_1A;      // PLL_SYNC in
 on tile[0]: clock cb_neo                        = XS1_CLKBLK_3;
 on tile[1]: port p_uart_tx                      = PORT_MIDI_OUT; // Bit 0
-on tile[1]: port p_qadc[]                       = {PORT_I2S_ADC2, PORT_I2S_ADC3}; // Sets which pins are to be used (channels 0..n)
+on tile[1]: port p_qadc[]                       = {
+                                                PORT_I2S_ADC2, PORT_I2S_ADC3
+                                                }; // Sets which pins are to be used (channels 0..n)
 
 
 int main() {
     // Cross tile comms    
     chan c_aud;
-    chan c_dsp;
     chan c_qadc;
          
     interface i2c_master_if i2c[1];
@@ -64,8 +61,8 @@ int main() {
             board_setup();
 
             // Local interfaces
-            input_gpio_if i_gpio_mc_buttons[3];
-            output_gpio_if i_gpio_mc_leds[3];
+            input_gpio_if i_gpio_mc_buttons[NUM_BUTTONS];
+            output_gpio_if i_gpio_mc_leds[NUM_LEDS];
 
 
             // XUA chans
@@ -92,8 +89,6 @@ int main() {
                 XUA_Endpoint0(c_ep_out[0], c_ep_in[0], c_aud_ctl, null, null, null, null);
                 XUA_Buffer(c_ep_out[1], c_ep_in[2], c_ep_in[1], c_sof, c_aud_ctl, p_for_mclk_count, c_aud);
 
-                // dsp_task_0(c_dsp);
-
                 gpio_control_task(  i_uart_tx,
                                     c_qadc,
                                     i_adsp_control,
@@ -104,11 +99,12 @@ int main() {
                 [[combine]]
                 par{
                     i2c_master(i2c, 1, p_scl, p_sda, 100);
-                    output_gpio(i_gpio_mc_leds, 3, p_mc_leds, null);
-                    input_gpio(i_gpio_mc_buttons, 3, p_mc_buttons, null);
+                    output_gpio(i_gpio_mc_leds, NUM_LEDS, p_mc_leds, null);
+                    input_gpio(i_gpio_mc_buttons, NUM_BUTTONS, p_mc_buttons, null);
                 }
             }
         }
+
         on tile[1]: {
             // Local comms
             output_gpio_if i_gpio_tx[1];
@@ -118,9 +114,9 @@ int main() {
             AudioHwInit();
 
             /* Quasi-ADC setup parameters */
-            const unsigned capacitor_pf = 8800;
-            const unsigned potentiometer_ohms = 10000; // nominal maximum value end to end
-            const unsigned resistor_series_ohms = 220;
+            const unsigned capacitor_pf = ADC_CAPACITOR_PF;
+            const unsigned potentiometer_ohms = ADC_POTENTIOMETER_OHMS; // nominal maximum value end to end
+            const unsigned resistor_series_ohms = ADC_SERIES_OHMS;
             const float v_rail = 3.3;
             const float v_thresh = 1.14;
             const unsigned convert_interval_ticks = 1 * XS1_TIMER_KHZ;
@@ -136,7 +132,6 @@ int main() {
 
             par{
                 XUA_AudioHub(c_aud, clk_audio_mclk, clk_audio_bclk, p_mclk_in, p_lrclk, p_bclk, p_i2s_dac, p_i2s_adc);
-                // dsp_task_1(c_dsp, control_input_ptr);
                 app_dsp_main_local_control();
                 gpio_control_slave(i_adsp_control);
 
@@ -148,6 +143,7 @@ int main() {
                     adc_pot_task(c_qadc, p_qadc, adc_pot_state);
                 }
 
+                // UART Tx and support GPIO
                 {
                     [[combine]]
                     par{

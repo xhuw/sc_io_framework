@@ -15,6 +15,7 @@
 
 
 int32_t control_to_volume_setting(unsigned vol_setting);
+
 unsigned envelope_to_vu(int32_t envelope);
 
 #ifdef __XC__
@@ -29,8 +30,8 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
                         chanend c_adc,
                         client interface adsp_control_if i_adsp_control,
                         out buffered port:32 p_neopixel, clock cb_neo,
-                        client input_gpio_if i_gpio_mc_buttons[],
-                        client output_gpio_if i_gpio_mc_leds[]
+                        client input_gpio_if i_gpio_mc_buttons[NUM_BUTTONS],
+                        client output_gpio_if i_gpio_mc_leds[NUM_LEDS]
                         );
 
 void gpio_control_slave(server interface adsp_control_if i_adsp_control);

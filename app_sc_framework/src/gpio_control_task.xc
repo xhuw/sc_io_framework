@@ -46,8 +46,8 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
                         chanend c_qadc,
                         client interface adsp_control_if i_adsp_control,
                         out buffered port:32 p_neopixel, clock cb_neo,
-                        client input_gpio_if i_gpio_mc_buttons[],
-                        client output_gpio_if i_gpio_mc_leds[]
+                        client input_gpio_if i_gpio_mc_buttons[NUM_BUTTONS],
+                        client output_gpio_if i_gpio_mc_leds[NUM_LEDS]
                         ){
     printf("gpio_control_task\n");
 
@@ -62,7 +62,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
     const uint8_t msg[] = "Hello world!\n";
     unsigned msg_idx = 0;
 
-    // DSP control
+    // DSP control init
     app_dsp_input_control_t dsp_input = {0};
     dsp_input.game_loopback_switch_pos = 1;
     dsp_input.mic_vol = UNITY_VOLUME;
@@ -80,9 +80,13 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
 
     app_dsp_output_control_t dsp_output = {0};
 
+    // Buttons state
+    unsigned button_state_old[3] = {1, 1, 1}; // Active low 
+    unsigned button_action[3] = {0, 0, 0}; // Inactive 
+
     // Main control super loop
-    while(1)unsafe{
-        // Read ADCs for pot input
+    while(1){
+        // Read ADCs for slider input
         unsigned qadc[NUM_ADC_POTS] = {0};
         for(unsigned ch = 0; ch < NUM_ADC_POTS; ch++){
             c_qadc <: (uint32_t)(ADC_CMD_READ | ch);
@@ -92,9 +96,12 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         // Convert to volume signals  
         dsp_input.monitor_vol = control_to_volume_setting(qadc[0]);
         dsp_input.output_vol = control_to_volume_setting(qadc[1]);
+        // dsp_input.mic_vol = control_to_volume_setting(qadc[2]);
+        // dsp_input.music_vol = control_to_volume_setting(qadc[3]);
+        // dsp_input.reverb_level = control_to_volume_setting(qadc[4]);
 
+        // Do the control input/output transaction
         dsp_output = i_adsp_control.do_control(dsp_input);
-
 
         // Convert envelopes to VU
         levels[0] = envelope_to_vu(dsp_output.headphone_envelope);
@@ -102,31 +109,46 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         vu_to_pixels(levels, np_state);
         while(!neopixel_drive_pins(np_state, p_neopixel)); // Takes about 1.2 ms for 24 neopixels
 
-
-        unsigned pb = i_gpio_mc_buttons[0].input();
-        if(pb == 0){ // Button 0 pressed
-            dsp_input.output_vol = UNITY_VOLUME / 2;
-        } else {
-            dsp_input.output_vol = UNITY_VOLUME;
-
+        // Read buttons and toggle action flags if pressed
+        for(int i = 0; i < NUM_BUTTONS; i++){
+            unsigned pb = i_gpio_mc_buttons[i].input();
+            if(pb == 0){ // Button pressed
+                if(button_state_old[i] == 1){
+                    button_action[i] ^= 1; // toggle
+                }
+            }
+            button_state_old[i] = pb;
+            i_gpio_mc_leds[i].output(button_action[i]);
         }
 
-    
+        // Set boolean controls from button states
+        // dsp_input.game_loopback_switch_pos = button_action[0];
+        // dsp_input.denoise_enable = button_action[1];
+        // dsp_input.ducking_enable = button_action[2];
 
-        // Send a character to the UART
+        // Send a character to the UART from the string
         i_uart_tx.write(msg[msg_idx]);
         if(++msg_idx == strlen((const char*)msg)){
             msg_idx = 0;
         }
 
+        // Do an I2C access
+        
+
+        // Arbitrary rate limit for control loop
         delay_milliseconds(10);
+
+        // Temp timing debug
+        timer tmr;
+        int32_t time_now;
+        tmr :> time_now;
+        printf("Time: %ld\n", time_now);
     }
 }
 
 
 
 void gpio_control_slave(server interface adsp_control_if i_adsp_control){
-
     while(1){
         select{
             case i_adsp_control.do_control(app_dsp_input_control_t dsp_input) -> app_dsp_output_control_t dsp_output:
