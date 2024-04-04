@@ -97,7 +97,6 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
 
 
         // Convert envelopes to VU
-        printf("Envelope %6d %6d\n", dsp_output.mic_envelope, dsp_output.headphone_envelope);
         levels[0] = envelope_to_vu(dsp_output.headphone_envelope);
         levels[1] = envelope_to_vu(dsp_output.mic_envelope);
         vu_to_pixels(levels, np_state);
