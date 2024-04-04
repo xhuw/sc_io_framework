@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "app_main.h"
 #include "xua_conf.h"
 #include "app_dsp.h"
 #include "dsp.h"

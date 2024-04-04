@@ -32,8 +32,7 @@ unsigned envelope_to_vu(int32_t envelope){
     if(vu < 0){
         vu = 0;
     }
-
-    printf("envelope: %ld log_envelope: %ld vu: %ld\n", envelope, log_envelope, vu);
+    // printf("envelope: %ld log_envelope: %ld vu: %ld\n", envelope, log_envelope, vu);
 
     return vu;
 }
