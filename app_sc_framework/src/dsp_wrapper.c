@@ -76,7 +76,7 @@ void process_vu(int32_t *samples, size_t n_ch, vu_state_t vu_state[NUM_USB_CHAN_
         
         // Calc instantaneous approx VU
         uint32_t abs_sample = samples[ch] > 0 ? samples[ch] : - samples[ch];
-        uq8_24 abs_sample_uq8_24 = abs_sample >> (7 - 6);
+        uq8_24 abs_sample_uq8_24 = abs_sample >> 7;
         q8_24 log_vu = dsp_math_log(abs_sample_uq8_24 + (1 << 24));
 
         if(log_vu > vu_state[ch].vu){

@@ -43,32 +43,39 @@ extern port p_sda;
 // GPIO resources
 on tile[0]: in port p_mc_buttons                = XS1_PORT_4E;      // 3 buttons on MC board
 on tile[0]: out port p_mc_leds                  = XS1_PORT_4F;      // 4 LEDs on MC board
-on tile[1]: out buffered port:32 p_neopixel     = PORT_SPDIF_OUT;
-on tile[1]: clock cb_neo                        = XS1_CLKBLK_3;
+on tile[0]: out buffered port:32 p_neopixel     = XS1_PORT_1A;      // PLL_SYNC in
+on tile[0]: clock cb_neo                        = XS1_CLKBLK_3;
 on tile[1]: port p_uart_tx                      = PORT_MIDI_OUT; // Bit 0
-on tile[1]: port p_adc[]                        = {PORT_I2S_ADC2, PORT_I2S_ADC3}; // Sets which pins are to be used (channels 0..n)
+on tile[1]: port p_qadc[]                       = {PORT_I2S_ADC2, PORT_I2S_ADC3}; // Sets which pins are to be used (channels 0..n)
 
 
 int main() {
-    // Cross tile comms
+    // Cross tile comms    
     chan c_aud;
     chan c_dsp;
+    chan c_qadc;
+         
     interface i2c_master_if i2c[1];
-    input_gpio_if i_gpio_mc_buttons[3];
-    output_gpio_if i_gpio_mc_leds[3];
-
+    interface uart_tx_if i_uart_tx;
+    interface adsp_control_if i_adsp_control;
+   
     par
     {
-        on tile[0]:{
+        on tile[0]: unsafe{
             board_setup();
 
-            /* XUA chans */
+            // Local interfaces
+            input_gpio_if i_gpio_mc_buttons[3];
+            output_gpio_if i_gpio_mc_leds[3];
+
+
+            // XUA chans
             chan c_ep_out[2];
             chan c_ep_in[3];
             chan c_sof;
             chan c_aud_ctl;
 
-            /* Declare enpoint tables */
+            // Declare enpoint tables
             XUD_EpType epTypeTableOut[2] = {XUD_EPTYPE_CTL | XUD_STATUS_ENABLE, XUD_EPTYPE_ISO};
             XUD_EpType epTypeTableIn[3] = {XUD_EPTYPE_CTL | XUD_STATUS_ENABLE, XUD_EPTYPE_ISO, XUD_EPTYPE_ISO};
 
@@ -86,7 +93,14 @@ int main() {
                 XUA_Endpoint0(c_ep_out[0], c_ep_in[0], c_aud_ctl, null, null, null, null);
                 XUA_Buffer(c_ep_out[1], c_ep_in[2], c_ep_in[1], c_sof, c_aud_ctl, p_for_mclk_count, c_aud);
 
-                dsp_task_0(c_dsp);
+                // dsp_task_0(c_dsp);
+
+                gpio_control_task(  i_uart_tx,
+                                    c_qadc,
+                                    i_adsp_control,
+                                    p_neopixel, cb_neo,
+                                    i_gpio_mc_buttons,
+                                    i_gpio_mc_leds);
 
                 [[combine]]
                 par{
@@ -96,17 +110,17 @@ int main() {
                 }
             }
         }
-        on tile[1]: unsafe{
+        on tile[1]: {
             // Local comms
-            chan c_adc;
-            interface uart_tx_if i_uart_tx;
+            output_gpio_if i_gpio_tx[1];
 
+            // Setup audio hardware on MC board
             unsafe{ i_i2c_client = i2c[0];}
             AudioHwInit();
 
             /* Quasi-ADC setup parameters */
             const unsigned capacitor_pf = 8800;
-            const unsigned potentiometer_ohms = 10000; // nominal maximum value ned to end
+            const unsigned potentiometer_ohms = 10000; // nominal maximum value end to end
             const unsigned resistor_series_ohms = 220;
             const float v_rail = 3.3;
             const float v_thresh = 1.14;
@@ -120,40 +134,30 @@ int main() {
                                                 convert_interval_ticks,
                                                 auto_scale};
 
-            /* Memory shared by dsp_task_1 and read by control_task */
-            control_input_t control_input;
-            control_input_t * unsafe control_input_ptr = &control_input;
-
-            /* UART IO params */
-            output_gpio_if i_gpio_tx[1];
-            char pin_map[] = {0}; // We output on bit 0 of the 4b port
-
-
-            adc_pot_state_t adc_pot_state;
-            uint16_t state_buffer[ADC_POT_STATE_SIZE(NUM_ADC_POTS, ADC_LUT_SIZE, ADC_FILTER_DEPTH)];
-            adc_pot_init(NUM_ADC_POTS, ADC_LUT_SIZE, ADC_FILTER_DEPTH, ADC_HYSTERESIS, state_buffer, adc_config, adc_pot_state);
 
             par{
                 XUA_AudioHub(c_aud, clk_audio_mclk, clk_audio_bclk, p_mclk_in, p_lrclk, p_bclk, p_i2s_dac, p_i2s_adc);
-                dsp_task_1(c_dsp, control_input_ptr);
-                adc_pot_task(c_adc, p_adc, adc_pot_state);
-                gpio_control_task(  i_uart_tx,
-                                    c_adc, control_input_ptr,
-                                    p_neopixel, cb_neo,
-                                    i_gpio_mc_buttons,
-                                    i_gpio_mc_leds);
-
+                // dsp_task_1(c_dsp, control_input_ptr);
                 app_dsp_main_local_control();
+                gpio_control_slave(i_adsp_control);
 
-                // Thses are inlined and do not occupy a thread
-                [[distribute]]
-                uart_tx(i_uart_tx, null,
-                        UART_BAUD_RATE, UART_PARITY_NONE, 8, 1,
-                        i_gpio_tx[0]);
-                [[distribute]]
-                output_gpio(i_gpio_tx, 1, p_uart_tx, pin_map);
+                // QADC setup and task
+                {
+                    adc_pot_state_t adc_pot_state;
+                    uint16_t state_buffer[ADC_POT_STATE_SIZE(NUM_ADC_POTS, ADC_LUT_SIZE, ADC_FILTER_DEPTH)];
+                    adc_pot_init(NUM_ADC_POTS, ADC_LUT_SIZE, ADC_FILTER_DEPTH, ADC_HYSTERESIS, state_buffer, adc_config, adc_pot_state);
+                    adc_pot_task(c_qadc, p_qadc, adc_pot_state);
+                }
 
-
+                {
+                    [[combine]]
+                    par{
+                        uart_tx(i_uart_tx, null,
+                            UART_BAUD_RATE, UART_PARITY_NONE, 8, 1,
+                            i_gpio_tx[0]);
+                        output_gpio(i_gpio_tx, 1, p_uart_tx, null);
+                    }
+                }
             }
         }
     }
