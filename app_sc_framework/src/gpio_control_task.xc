@@ -46,6 +46,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
                         chanend c_qadc,
                         client interface adsp_control_if i_adsp_control,
                         out buffered port:32 p_neopixel, clock cb_neo,
+                        client interface i2c_master_if i_i2c,
                         client input_gpio_if i_gpio_mc_buttons[NUM_BUTTONS],
                         client output_gpio_if i_gpio_mc_leds[NUM_LEDS]
                         ){
@@ -80,6 +81,10 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
 
     app_dsp_output_control_t dsp_output = {0};
 
+    // ADC results
+    unsigned qadc[NUM_ADC_POTS] = {0};
+
+
     // Buttons state
     unsigned button_state_old[3] = {1, 1, 1}; // Active low 
     unsigned button_action[3] = {0, 0, 0}; // Inactive 
@@ -87,7 +92,6 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
     // Main control super loop
     while(1){
         // Read ADCs for slider input
-        unsigned qadc[NUM_ADC_POTS] = {0};
         for(unsigned ch = 0; ch < NUM_ADC_POTS; ch++){
             c_qadc <: (uint32_t)(ADC_CMD_READ | ch);
             c_qadc :> qadc[ch];
@@ -133,7 +137,8 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         }
 
         // Do an I2C access
-        
+        // i2c_regop_res_t result;
+        // val = i2c.read_reg(I2C_ADDR, REG_NUM, result);
 
         // Arbitrary rate limit for control loop
         delay_milliseconds(10);

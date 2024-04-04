@@ -51,7 +51,7 @@ int main() {
     chan c_aud;
     chan c_qadc;
          
-    interface i2c_master_if i2c[1];
+    interface i2c_master_if i2c[2];
     interface uart_tx_if i_uart_tx;
     interface adsp_control_if i_adsp_control;
    
@@ -93,12 +93,13 @@ int main() {
                                     c_qadc,
                                     i_adsp_control,
                                     p_neopixel, cb_neo,
+                                    i2c[1],
                                     i_gpio_mc_buttons,
                                     i_gpio_mc_leds);
 
                 [[combine]]
                 par{
-                    i2c_master(i2c, 1, p_scl, p_sda, 100);
+                    i2c_master(i2c, 2, p_scl, p_sda, 100);
                     output_gpio(i_gpio_mc_leds, NUM_LEDS, p_mc_leds, null);
                     input_gpio(i_gpio_mc_buttons, NUM_BUTTONS, p_mc_buttons, null);
                 }

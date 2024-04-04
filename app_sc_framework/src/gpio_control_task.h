@@ -30,6 +30,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
                         chanend c_adc,
                         client interface adsp_control_if i_adsp_control,
                         out buffered port:32 p_neopixel, clock cb_neo,
+                        client interface i2c_master_if i_i2c,
                         client input_gpio_if i_gpio_mc_buttons[NUM_BUTTONS],
                         client output_gpio_if i_gpio_mc_leds[NUM_LEDS]
                         );
