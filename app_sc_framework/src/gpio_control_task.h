@@ -17,8 +17,8 @@ typedef struct control_input_t
 
 #ifdef __XC__
 typedef interface adsp_control_if {
-    void dummy(void);
-  // void do_control(app_dsp_input_control_t &input, app_dsp_input_control_t &output);
+    // void dummy(void);
+  app_dsp_output_control_t do_control(app_dsp_input_control_t input);
 } adsp_control_if;
 
 

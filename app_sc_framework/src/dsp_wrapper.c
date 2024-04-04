@@ -59,7 +59,7 @@ void UserBufferManagement(unsigned sampsFromUsbToAudio[], unsigned sampsFromAudi
         samples_from_host_g[i] = sampsFromUsbToAudio[i];
         // sampsFromUsbToAudio[i] = ((int64_t)samples_from_host_g[i] * (int64_t)output_gain_g[i]) >> 31;
     }
-    chan_out_word(c_dsp_synch_end, 0);
+    // chan_out_word(c_dsp_synch_end, 0);
 }
 
 
@@ -84,7 +84,7 @@ void process_vu(int32_t *samples, size_t n_ch, vu_state_t vu_state[NUM_USB_CHAN_
 void dsp_task_1(chanend_t c_dsp, control_input_t *control_input){
     printstr("dsp_task_1\n");
     channel_t c_dsp_synch = chan_alloc();
-    c_dsp_synch_end = c_dsp_synch.end_b;
+    // c_dsp_synch_end = c_dsp_synch.end_b;
 
     vu_state_t vu_state[NUM_USB_CHAN_OUT] = {{0}};
 

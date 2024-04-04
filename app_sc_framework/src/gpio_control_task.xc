@@ -16,6 +16,8 @@
 #define VU_RED      0x002000
 #define VU_OFF      0x000000
 
+#define UNITY_VOLUME (1 << Q_SIG)
+
 // unsafe void vu_to_pixels(control_input_t * unsafe control_input, neopixel_state &np_state){
 //     for(int i = 0; i < 12; i++){
 //         int32_t threshold = 1 << (2 * i + 7);
@@ -97,9 +99,9 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         }
         printf("\n");
 
-        q8_24 lin_volume = adc[0] << (24 - POT_NUM_BITS);
-        q8_24 pow_volume = dsp_math_exp(lin_volume) - dsp_math_exp(0);
-        printf("lin: %d pow: %d\n", lin_volume, pow_volume);
+        // q8_24 lin_volume = adc[0] << (24 - POT_NUM_BITS);
+        // q8_24 pow_volume = dsp_math_exp(lin_volume) - dsp_math_exp(0);
+        // printf("lin: %d pow: %d\n", lin_volume, pow_volume);
 
 // TODO work out clash between lib_dsp and lib_audio_dsp
 #define SIG_EXP (-27)
@@ -107,16 +109,11 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
 
         // set_volume(pow_volume << volume_shift);
 
-        for(int i = 0; i < 3; i++){
-        app_dsp_do_control(dsp_input, dsp_output);
+        dsp_output = i_adsp_control.do_control(dsp_input);
         printf("Envelope %6d %6d\n", dsp_output.mic_envelope, dsp_output.headphone_envelope);
 
-        // Read buttons
-            unsigned pb = i_gpio_mc_buttons[i].input();
-            // Drive MC leds
-            i_gpio_mc_leds[i].output(pb);
-        unsigned pb = i_gpio_mc_buttons.input();
-        if((pb & 0x1) == 0){ // Button 0 pressed
+        unsigned pb = i_gpio_mc_buttons[0].input();
+        if(pb == 0){ // Button 0 pressed
             dsp_input.output_vol = UNITY_VOLUME / 2;
         } else {
             dsp_input.output_vol = UNITY_VOLUME;
@@ -138,11 +135,10 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
 
 
 void gpio_control_slave(server interface adsp_control_if i_adsp_control){
-
-    app_dsp_input_control_t dummy;
     while(1){
         select{
-            case i_adsp_control.dummy():
+            case i_adsp_control.do_control(app_dsp_input_control_t dsp_input) -> app_dsp_output_control_t dsp_output:
+                app_dsp_do_control(dsp_input, dsp_output);
             break;
         }
     }
