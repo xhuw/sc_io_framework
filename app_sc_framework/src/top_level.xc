@@ -96,12 +96,13 @@ int main() {
                                     i_gpio_mc_buttons,
                                     i_gpio_mc_leds);
 
-                [[combine]]
-                par{
-                    i2c_master(i2c, 2, p_scl, p_sda, 100);
-                    output_gpio(i_gpio_mc_leds, NUM_LEDS, p_mc_leds, null);
-                    input_gpio(i_gpio_mc_buttons, NUM_BUTTONS, p_mc_buttons, null);
-                }
+                [[distribute]]
+                output_gpio(i_gpio_mc_leds, NUM_LEDS, p_mc_leds, null);
+                [[distribute]]
+                input_gpio(i_gpio_mc_buttons, NUM_BUTTONS, p_mc_buttons, null);
+
+                i2c_master(i2c, 2, p_scl, p_sda, 100);
+
             }
         }
 
