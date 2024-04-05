@@ -112,7 +112,6 @@ int main() {
 
             // Setup audio hardware on MC board
             unsafe{ i_i2c_client = i2c[0];}
-            AudioHwInit();
 
             /* Quasi-ADC setup parameters */
             const unsigned capacitor_pf = ADC_CAPACITOR_PF;

@@ -84,10 +84,12 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
     // ADC results
     unsigned qadc[NUM_ADC_POTS] = {0};
 
-
     // Buttons state
     unsigned button_state_old[3] = {1, 1, 1}; // Active low 
     unsigned button_action[3] = {0, 0, 0}; // Inactive 
+
+    unsigned loop_counter = 0;
+    unsigned blinky_state = 0;
 
     // Main control super loop
     while(1){
@@ -122,13 +124,20 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
                 }
             }
             button_state_old[i] = pb;
-            i_gpio_mc_leds[i].output(button_action[i]);
+            i_gpio_mc_leds[NUM_BUTTONS - i - 1].output(button_action[i]); // Mirror LEDs so they line up
+        }
+
+        // Blinky LED to show looping
+        if(++loop_counter == 10){
+            blinky_state ^= 1;
+            i_gpio_mc_leds[3].output(blinky_state);
+            loop_counter = 0;
         }
 
         // Set boolean controls from button states
-        // dsp_input.game_loopback_switch_pos = button_action[0];
-        // dsp_input.denoise_enable = button_action[1];
-        // dsp_input.ducking_enable = button_action[2];
+        dsp_input.game_loopback_switch_pos = button_action[0];
+        dsp_input.denoise_enable = button_action[1];
+        dsp_input.ducking_enable = button_action[2];
 
         // Send a character to the UART from the string
         i_uart_tx.write(msg[msg_idx]);
@@ -140,14 +149,8 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         // i2c_regop_res_t result;
         // val = i2c.read_reg(I2C_ADDR, REG_NUM, result);
 
-        // Arbitrary rate limit for control loop
+        // Arbitrary rate limit for control loop. Loop time for logic is around 2ms
         delay_milliseconds(10);
-
-        // Temp timing debug
-        timer tmr;
-        int32_t time_now;
-        tmr :> time_now;
-        printf("Time: %ld\n", time_now);
     }
 }
 
