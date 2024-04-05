@@ -42,7 +42,7 @@ on tile[0]: out buffered port:32 p_neopixel     = XS1_PORT_1A;      // PLL_SYNC 
 on tile[0]: clock cb_neo                        = XS1_CLKBLK_3;
 on tile[1]: port p_uart_tx                      = PORT_MIDI_OUT; // Bit 0
 on tile[1]: port p_qadc[]                       = {
-                                                PORT_I2S_ADC2, PORT_I2S_ADC3
+                                                PORT_I2S_ADC2, PORT_I2S_ADC3, PORT_I2S_DAC2, PORT_I2S_DAC3, PORT_ADAT_OUT
                                                 }; // Sets which pins are to be used (channels 0..n)
 
 

@@ -72,6 +72,12 @@ void vu_to_console(unsigned levels[2]){
     printf("%s", str);
 }
 
+void print_adc_vals(unsigned qadc[NUM_ADC_POTS]){
+    for(int i = 0; i < NUM_ADC_POTS; i++){
+        printf("ADC%d: %u%s", i, qadc[i], i < (NUM_ADC_POTS - 1) ? ", " : "\n");    
+    }
+}
+
 void gpio_control_task( client uart_tx_if i_uart_tx,
                         chanend c_qadc,
                         client interface adsp_control_if i_adsp_control,
@@ -105,9 +111,9 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
     dsp_input.output_vol = UNITY_VOLUME;
     dsp_input.output_mute = 0;
     dsp_input.reverb_level = 0;
-    dsp_input.reverb_enable = 1;
-    dsp_input.denoise_enable = 1;
-    dsp_input.ducking_enable = 1;
+    dsp_input.reverb_enable = 0;
+    dsp_input.denoise_enable = 0;
+    dsp_input.ducking_enable = 0;
 
     app_dsp_output_control_t dsp_output = {0};
 
@@ -128,13 +134,14 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
             c_qadc <: (uint32_t)(ADC_CMD_READ | ch);
             c_qadc :> qadc[ch];
         }
+        // print_adc_vals(qadc); // Debug - uncomment to see raw ADC values
 
         // Convert to volume signals  
-        dsp_input.output_vol = control_to_volume_setting(qadc[0]);
-        dsp_input.mic_vol = control_to_volume_setting(qadc[1] * 2);
-        // dsp_input.mic_vol = control_to_volume_setting(qadc[2]);
-        // dsp_input.music_vol = control_to_volume_setting(qadc[3]);
-        // dsp_input.reverb_level = control_to_volume_setting(qadc[4]);
+        dsp_input.mic_vol = control_to_volume_setting(qadc[0]);
+        dsp_input.music_vol = control_to_volume_setting(qadc[1]);
+        dsp_input.monitor_vol = control_to_volume_setting(qadc[2]);
+        dsp_input.output_vol = control_to_volume_setting(qadc[3]);
+        dsp_input.reverb_level = control_to_volume_setting(qadc[4]);
 
         // Do the control input/output transaction
         dsp_output = i_adsp_control.do_control(dsp_input);
@@ -144,7 +151,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         levels[0] = envelope_to_vu(dsp_output.mic_envelope);
         vu_to_pixels(levels, np_state);
         while(!neopixel_drive_pins(np_state, p_neopixel)); // Takes about 1.2 ms for 24 neopixels
-        vu_to_console(levels);
+        vu_to_console(levels); // Print on screen
 
         // Read buttons and toggle action flags if pressed
         for(int i = 0; i < NUM_BUTTONS; i++){
