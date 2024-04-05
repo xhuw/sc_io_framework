@@ -58,12 +58,11 @@ int main() {
     par
     {
         on tile[0]: unsafe{
-            board_setup();
+            board_setup(); // Turns on power for 316MC board
 
             // Local interfaces
             input_gpio_if i_gpio_mc_buttons[NUM_BUTTONS];
             output_gpio_if i_gpio_mc_leds[NUM_LEDS];
-
 
             // XUA chans
             chan c_ep_out[2];
@@ -83,9 +82,9 @@ int main() {
 
 
             par{
-                XUD_Main(c_ep_out, 2, c_ep_in, 3,
-                     c_sof, epTypeTableOut, epTypeTableIn,
-                     XUD_SPEED_HS, XUD_PWR_SELF);
+                XUD_Main(   c_ep_out, 2, c_ep_in, 3,
+                            c_sof, epTypeTableOut, epTypeTableIn,
+                            XUD_SPEED_HS, XUD_PWR_SELF);
                 XUA_Endpoint0(c_ep_out[0], c_ep_in[0], c_aud_ctl, null, null, null, null);
                 XUA_Buffer(c_ep_out[1], c_ep_in[2], c_ep_in[1], c_sof, c_aud_ctl, p_for_mclk_count, c_aud);
 
@@ -129,7 +128,6 @@ int main() {
                                                 v_thresh,
                                                 convert_interval_ticks,
                                                 auto_scale};
-
 
             par{
                 XUA_AudioHub(c_aud, clk_audio_mclk, clk_audio_bclk, p_mclk_in, p_lrclk, p_bclk, p_i2s_dac, p_i2s_adc);
