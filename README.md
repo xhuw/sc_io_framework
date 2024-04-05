@@ -36,14 +36,7 @@ Now make the project:
 Setup the hardware
 ------------------
 
-This demo runs on XK-AUDIO-316-MC board with a few modifications::
-
-    (TODO)
-
-     - Jumpers on ADC
-     - Neopixel on MIDI out
-     - I2C connected to IO expander
-     - Potentiometer with series R and parallel C connected to ....
+This demo runs on XK-AUDIO-316-MC board with a few modifications. Please see this page https://xmosjira.atlassian.net/wiki/spaces/~870418189/pages/4048945164/FRJ+Demo+HW+Setup+Guide for details.
 
  
  Modifying the DSP
