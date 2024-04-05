@@ -632,7 +632,7 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
                 adsp_auto.modules[6].control.config = NULL;
                 adsp_auto.modules[6].control.num_control_commands = 0;
                 fork_init(&adsp_auto.modules[6], &allocator6, 6, 1, 2, 1);
-	static envelope_detector_rms_config_t config7 = { .attack_alpha = 298262, .release_alpha = 298262 };
+	static envelope_detector_rms_config_t config7 = { .attack_alpha = 1789570, .release_alpha = 596523 };
 
             static envelope_detector_rms_state_t state7;
             static uint8_t memory7[_ADSP_MAX(1, ENVELOPE_DETECTOR_RMS_REQUIRED_MEMORY(1, 0, 1))];
@@ -998,7 +998,7 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
                 adsp_auto.modules[29].control.module_type = e_dsp_stage_volume_control;
                 adsp_auto.modules[29].control.num_control_commands = NUM_CMDS_VOLUME_CONTROL;
                 volume_control_init(&adsp_auto.modules[29], &allocator29, 29, 2, 2, 1);
-	static envelope_detector_rms_config_t config31 = { .attack_alpha = 298262, .release_alpha = 298262 };
+	static envelope_detector_rms_config_t config31 = { .attack_alpha = 1789570, .release_alpha = 596523 };
 
             static envelope_detector_rms_state_t state31;
             static uint8_t memory31[_ADSP_MAX(1, ENVELOPE_DETECTOR_RMS_REQUIRED_MEMORY(1, 0, 1))];

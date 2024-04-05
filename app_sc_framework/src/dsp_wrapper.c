@@ -11,7 +11,7 @@
 
 void UserBufferManagementInit(unsigned sampFreq)
 {
-    printstrln("UserBufferManagementInit");
+    // printstrln("UserBufferManagementInit");
 }
 
 void UserBufferManagement(unsigned sampsFromUsbToAudio[], unsigned sampsFromAudioToUsb[]){

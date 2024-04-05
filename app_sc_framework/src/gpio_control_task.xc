@@ -16,7 +16,7 @@
 #define VU_RED      0x002000
 #define VU_OFF      0x000000
 
-
+// Sets Neopixel struct according to VU setting
 void vu_to_pixels(unsigned levels[2], neopixel_state &np_state){
     for(int i = 0; i < VU_NUM_PIXELS; i++){
         if(levels[0] > i){
@@ -41,6 +41,36 @@ void vu_to_pixels(unsigned levels[2], neopixel_state &np_state){
     }
 }
 
+// Helper to show VU in terminal
+void vu_to_console(unsigned levels[2]){
+    char str[VU_NUM_PIXELS * 2 + 1 + 2]; // +1 for gap + 1 for carrige rerturn + 1 for str terminator
+    str[VU_NUM_PIXELS] = ' '; // gap
+    str[VU_NUM_PIXELS * 2 + 1] = 0x0d; // Column zero
+    str[VU_NUM_PIXELS * 2 + 2] = 0; // terminator
+
+    for(int i = 0; i < VU_NUM_PIXELS; i++){
+        if(levels[0] > i){
+            if(i < VU_NUM_PIXELS * 3 / 4){
+                str[VU_NUM_PIXELS - i - 1] = '-';
+            } else {
+                str[VU_NUM_PIXELS - i - 1] = '+';
+            }
+        } else {
+            str[VU_NUM_PIXELS - i - 1] = ' ';
+        }
+
+        if(levels[1] > i){
+            if(i < VU_NUM_PIXELS * 3 / 4){
+                str[VU_NUM_PIXELS + i + 1] = '-';
+            } else {
+                str[VU_NUM_PIXELS + i + 1] = '+';
+            }
+        } else {
+            str[VU_NUM_PIXELS + i + 1] = ' ';
+        }
+    }
+    printf("%s", str);
+}
 
 void gpio_control_task( client uart_tx_if i_uart_tx,
                         chanend c_qadc,
@@ -100,8 +130,8 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         }
 
         // Convert to volume signals  
-        dsp_input.monitor_vol = control_to_volume_setting(qadc[0]);
-        dsp_input.output_vol = control_to_volume_setting(qadc[1]);
+        dsp_input.output_vol = control_to_volume_setting(qadc[0]);
+        dsp_input.mic_vol = control_to_volume_setting(qadc[1] * 2);
         // dsp_input.mic_vol = control_to_volume_setting(qadc[2]);
         // dsp_input.music_vol = control_to_volume_setting(qadc[3]);
         // dsp_input.reverb_level = control_to_volume_setting(qadc[4]);
@@ -110,10 +140,11 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         dsp_output = i_adsp_control.do_control(dsp_input);
 
         // Convert envelopes to VU
-        levels[0] = envelope_to_vu(dsp_output.headphone_envelope);
-        levels[1] = envelope_to_vu(dsp_output.mic_envelope);
+        levels[1] = envelope_to_vu(dsp_output.headphone_envelope);
+        levels[0] = envelope_to_vu(dsp_output.mic_envelope);
         vu_to_pixels(levels, np_state);
         while(!neopixel_drive_pins(np_state, p_neopixel)); // Takes about 1.2 ms for 24 neopixels
+        vu_to_console(levels);
 
         // Read buttons and toggle action flags if pressed
         for(int i = 0; i < NUM_BUTTONS; i++){
@@ -124,7 +155,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
                 }
             }
             button_state_old[i] = pb;
-            i_gpio_mc_leds[NUM_BUTTONS - i - 1].output(button_action[i]); // Mirror LEDs so they line up
+            i_gpio_mc_leds[NUM_BUTTONS - i - 1].output(button_action[i]); // Mirror LEDs so they line up with buttons
         }
 
         // Blinky LED to show looping
