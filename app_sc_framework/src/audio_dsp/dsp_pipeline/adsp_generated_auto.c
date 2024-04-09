@@ -24,7 +24,7 @@
 #include <stages/envelope_detector_rms.h>
 #include <stages/cascaded_biquads.h>
 #include <stages/fork.h>
-#include <stages/noise_gate.h>
+#include <stages/noise_suppressor.h>
 #include <stages/switch.h>
 #include <stages/fork.h>
 #include <stages/bypass.h>
@@ -55,7 +55,7 @@
 #include <volume_control_config.h>
 #include <envelope_detector_rms_config.h>
 #include <cascaded_biquads_config.h>
-#include <noise_gate_config.h>
+#include <noise_suppressor_config.h>
 #include <switch_config.h>
 #include <switch_config.h>
 #include <dsp_thread_config.h>
@@ -150,7 +150,7 @@ void dsp_auto_thread0(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 		volume_control_control(modules[6]->state, &modules[6]->control);
 		envelope_detector_rms_control(modules[8]->state, &modules[8]->control);
 		cascaded_biquads_control(modules[9]->state, &modules[9]->control);
-		noise_gate_control(modules[11]->state, &modules[11]->control);
+		noise_suppressor_control(modules[11]->state, &modules[11]->control);
 		switch_control(modules[12]->state, &modules[12]->control);
 		switch_control(modules[15]->state, &modules[15]->control);
 		control_done = true;
@@ -165,7 +165,7 @@ void dsp_auto_thread0(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 		volume_control_control(modules[6]->state, &modules[6]->control);
 		envelope_detector_rms_control(modules[8]->state, &modules[8]->control);
 		cascaded_biquads_control(modules[9]->state, &modules[9]->control);
-		noise_gate_control(modules[11]->state, &modules[11]->control);
+		noise_suppressor_control(modules[11]->state, &modules[11]->control);
 		switch_control(modules[12]->state, &modules[12]->control);
 		switch_control(modules[15]->state, &modules[15]->control);
 		control_ticks = get_reference_time() - start_control_ts;
@@ -208,7 +208,7 @@ void dsp_auto_thread0(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 		stage_10_input,
 		stage_10_output,
 		modules[10]->state);
-	noise_gate_process(
+	noise_suppressor_process(
 		stage_11_input,
 		stage_11_output,
 		modules[11]->state);
@@ -538,7 +538,7 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
 	adsp_auto.n_link = 2;
 	adsp_auto.modules = adsp_auto_modules;
 	adsp_auto.n_modules = 36;
-	static pipeline_config_t config0 = { .checksum = {6, 37, 78, 28, 160, 43, 176, 24, 155, 17, 152, 252, 120, 150, 233, 249} };
+	static pipeline_config_t config0 = { .checksum = {115, 252, 255, 27, 234, 246, 247, 46, 43, 143, 233, 171, 214, 80, 205, 237} };
 
             static pipeline_state_t state0;
             static uint8_t memory0[_ADSP_MAX(1, PIPELINE_REQUIRED_MEMORY(0, 0, 1))];
@@ -704,10 +704,10 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
                 adsp_auto.modules[10].control.config = NULL;
                 adsp_auto.modules[10].control.num_control_commands = 0;
                 fork_init(&adsp_auto.modules[10], &allocator10, 10, 1, 2, 1);
-	static noise_gate_config_t config11 = { .attack_alpha = 17895697, .release_alpha = 745654, .threshold = 4244337 };
+	static noise_suppressor_config_t config11 = { .attack_alpha = 17895697, .release_alpha = 745654, .threshold = 2386766, .slope = -2.0 };
 
-            static noise_gate_state_t state11;
-            static uint8_t memory11[_ADSP_MAX(1, NOISE_GATE_REQUIRED_MEMORY(1, 1, 1))];
+            static noise_suppressor_state_t state11;
+            static uint8_t memory11[_ADSP_MAX(1, NOISE_SUPPRESSOR_REQUIRED_MEMORY(1, 1, 1))];
             static adsp_bump_allocator_t allocator11 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory11);
 
             adsp_auto.modules[11].state = (void*)&state11;
@@ -717,9 +717,9 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[11].control.config_rw_state = config_none_pending;
             
                 adsp_auto.modules[11].control.config = (void*)&config11;
-                adsp_auto.modules[11].control.module_type = e_dsp_stage_noise_gate;
-                adsp_auto.modules[11].control.num_control_commands = NUM_CMDS_NOISE_GATE;
-                noise_gate_init(&adsp_auto.modules[11], &allocator11, 11, 1, 1, 1);
+                adsp_auto.modules[11].control.module_type = e_dsp_stage_noise_suppressor;
+                adsp_auto.modules[11].control.num_control_commands = NUM_CMDS_NOISE_SUPPRESSOR;
+                noise_suppressor_init(&adsp_auto.modules[11], &allocator11, 11, 1, 1, 1);
 	static switch_config_t config12 = { .position = 0 };
 
             static switch_state_t state12;
