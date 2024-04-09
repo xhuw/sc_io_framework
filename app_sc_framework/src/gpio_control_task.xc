@@ -10,7 +10,6 @@
 #include "neopixel.h"
 #include "adc_pot.h"
 #include "app_dsp.h"
-#include "dsp/adsp.h"
 
 #define VU_GREEN    0x000010
 #define VU_RED      0x002000
@@ -78,6 +77,14 @@ void print_adc_vals(unsigned qadc[NUM_ADC_POTS]){
     }
 }
 
+// Convert QADC value into a number that can be used for wet gain.
+// scales between -20dB and 0dB for nice sounds
+float control_to_wet_gain(unsigned control_level) {
+    int max_control_val = (1<<POT_NUM_BITS) - 1;
+    float level = -20.0 + (20 * ((float)control_level / (float)max_control_val));
+    return level;
+}
+
 void gpio_control_task( client uart_tx_if i_uart_tx,
                         chanend c_qadc,
                         client interface adsp_control_if i_adsp_control,
@@ -110,8 +117,8 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
     dsp_input.monitor_mute = 0;
     dsp_input.output_vol = UNITY_VOLUME;
     dsp_input.output_mute = 0;
-    dsp_input.reverb_level = 0;
-    dsp_input.reverb_enable = 0;
+    dsp_input.reverb_wet_gain = -185;
+    dsp_input.reverb_enable = 1;
     dsp_input.denoise_enable = 0;
     dsp_input.ducking_enable = 0;
 
@@ -141,7 +148,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         dsp_input.music_vol = control_to_volume_setting(qadc[1]);
         dsp_input.monitor_vol = control_to_volume_setting(qadc[2]);
         dsp_input.output_vol = control_to_volume_setting(qadc[3]);
-        dsp_input.reverb_level = control_to_volume_setting(qadc[4]);
+        dsp_input.reverb_wet_gain = control_to_wet_gain(qadc[4]);
 
         // Do the control input/output transaction
         dsp_output = i_adsp_control.do_control(dsp_input);

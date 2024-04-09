@@ -11,6 +11,7 @@
 
 #include <stages/adsp_pipeline.h>
 #include <stages/adsp_control.h>
+#include <dsp/adsp.h>
 #include <stdint.h>
 #include "adsp_generated_auto.h"
 #include "adsp_instance_id_auto.h"
@@ -84,6 +85,16 @@ static void do_read(int instance, int cmd_id, int size, void* data) {
 }
 
 void app_dsp_do_control(REFERENCE_PARAM(app_dsp_input_control_t, input), REFERENCE_PARAM(app_dsp_output_control_t, output)) {
+
+    static float pregain;
+    static bool pregain_known = false;
+    if(!pregain_known) {
+        do_read(reverb_stage_index, CMD_REVERB_PREGAIN, sizeof(float), &pregain);
+        pregain_known = true;
+    }
+    int32_t wet_gain = adsp_reverb_calc_wet_gain(input->reverb_wet_gain, pregain);
+    do_write(reverb_stage_index, CMD_REVERB_WET_GAIN, sizeof(wet_gain), &wet_gain);
+
     // vol
     do_write(mic_vc_stage_index, CMD_VOLUME_CONTROL_TARGET_GAIN, sizeof(int32_t), &input->mic_vol);
     do_write(music_vc_stage_index, CMD_VOLUME_CONTROL_TARGET_GAIN, sizeof(int32_t), &input->music_vol);

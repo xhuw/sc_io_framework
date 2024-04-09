@@ -26,8 +26,8 @@ typedef struct {
     int32_t output_vol;
     int8_t output_mute;
 
-    // reverb, TODO
-    int32_t reverb_level;
+    // reverb
+    float reverb_wet_gain; // reverb level, value between -186 and 0
     int32_t reverb_enable;
 
     // denoise/ducking toggles

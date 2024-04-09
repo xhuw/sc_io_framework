@@ -26,11 +26,12 @@
 #include <stages/fork.h>
 #include <stages/noise_suppressor.h>
 #include <stages/switch.h>
-#include <stages/fork.h>
-#include <stages/bypass.h>
-#include <stages/switch.h>
 #include <stages/dsp_thread.h>
 #include <stages/fork.h>
+#include <stages/reverb.h>
+#include <stages/switch.h>
+#include <stages/fork.h>
+#include <stages/dsp_thread.h>
 #include <stages/fork.h>
 #include <stages/compressor_sidechain.h>
 #include <stages/switch.h>
@@ -57,6 +58,8 @@
 #include <cascaded_biquads_config.h>
 #include <noise_suppressor_config.h>
 #include <switch_config.h>
+#include <dsp_thread_config.h>
+#include <reverb_config.h>
 #include <switch_config.h>
 #include <dsp_thread_config.h>
 #include <compressor_sidechain_config.h>
@@ -91,10 +94,6 @@ void dsp_auto_thread0(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 	int32_t edge16[1] = {0};
 	int32_t edge17[1] = {0};
 	int32_t edge18[1] = {0};
-	int32_t edge19[1] = {0};
-	int32_t edge20[1] = {0};
-	int32_t edge21[1] = {0};
-	int32_t edge22[1] = {0};
 	int32_t* stage_2_input[] = {edge0, edge2};
 	int32_t* stage_2_output[] = {edge6};
 	int32_t* stage_3_input[] = {edge1, edge3};
@@ -102,7 +101,7 @@ void dsp_auto_thread0(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 	int32_t* stage_4_input[] = {edge4, edge5};
 	int32_t* stage_4_output[] = {edge8};
 	int32_t* stage_5_input[] = {edge6, edge7};
-	int32_t* stage_5_output[] = {edge20, edge21};
+	int32_t* stage_5_output[] = {edge16, edge17};
 	int32_t* stage_6_input[] = {edge8};
 	int32_t* stage_6_output[] = {edge9};
 	int32_t* stage_7_input[] = {edge9};
@@ -116,13 +115,7 @@ void dsp_auto_thread0(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 	int32_t* stage_11_input[] = {edge14};
 	int32_t* stage_11_output[] = {edge15};
 	int32_t* stage_12_input[] = {edge13, edge15};
-	int32_t* stage_12_output[] = {edge16};
-	int32_t* stage_13_input[] = {edge16};
-	int32_t* stage_13_output[] = {edge17, edge18};
-	int32_t* stage_14_input[] = {edge18};
-	int32_t* stage_14_output[] = {edge19};
-	int32_t* stage_15_input[] = {edge17, edge19};
-	int32_t* stage_15_output[] = {edge22};
+	int32_t* stage_12_output[] = {edge18};
 	uint32_t start_ts, end_ts, start_control_ts, control_ticks;
 	bool control_done;
 	while(1) {
@@ -152,7 +145,6 @@ void dsp_auto_thread0(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 		cascaded_biquads_control(modules[9]->state, &modules[9]->control);
 		noise_suppressor_control(modules[11]->state, &modules[11]->control);
 		switch_control(modules[12]->state, &modules[12]->control);
-		switch_control(modules[15]->state, &modules[15]->control);
 		control_done = true;
 		control_ticks = get_reference_time() - start_control_ts;
 		continue; }
@@ -167,7 +159,6 @@ void dsp_auto_thread0(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 		cascaded_biquads_control(modules[9]->state, &modules[9]->control);
 		noise_suppressor_control(modules[11]->state, &modules[11]->control);
 		switch_control(modules[12]->state, &modules[12]->control);
-		switch_control(modules[15]->state, &modules[15]->control);
 		control_ticks = get_reference_time() - start_control_ts;
 	}
 	start_ts = get_reference_time();
@@ -216,18 +207,6 @@ void dsp_auto_thread0(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 		stage_12_input,
 		stage_12_output,
 		modules[12]->state);
-	fork_process(
-		stage_13_input,
-		stage_13_output,
-		modules[13]->state);
-	bypass_process(
-		stage_14_input,
-		stage_14_output,
-		modules[14]->state);
-	switch_process(
-		stage_15_input,
-		stage_15_output,
-		modules[15]->state);
 
 	end_ts = get_reference_time();
 	uint32_t process_plus_control_ticks = (end_ts - start_ts) + control_ticks;
@@ -235,13 +214,98 @@ void dsp_auto_thread0(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 	{
 		((dsp_thread_state_t*)(modules[1]->state))->max_cycles = process_plus_control_ticks;
 	}
-	chan_out_buf_word(c_dest[0], (void*)edge20, 1);
-	chan_out_buf_word(c_dest[0], (void*)edge21, 1);
-	chan_out_buf_word(c_dest[0], (void*)edge22, 1);
+	chan_out_buf_word(c_dest[0], (void*)edge16, 1);
+	chan_out_buf_word(c_dest[0], (void*)edge17, 1);
+	chan_out_buf_word(c_dest[0], (void*)edge18, 1);
 	}
 }
 DECLARE_JOB(dsp_auto_thread1, (chanend_t*, chanend_t*, module_instance_t**));
 void dsp_auto_thread1(chanend_t* c_source, chanend_t* c_dest, module_instance_t** modules) {
+	local_thread_mode_set_bits(thread_mode_high_priority);	int32_t edge0[1] = {0};
+	int32_t edge1[1] = {0};
+	int32_t edge2[1] = {0};
+	int32_t edge3[1] = {0};
+	int32_t edge4[1] = {0};
+	int32_t edge5[1] = {0};
+	int32_t edge6[1] = {0};
+	int32_t edge7[1] = {0};
+	int32_t edge8[1] = {0};
+	int32_t edge9[1] = {0};
+	int32_t edge10[1] = {0};
+	int32_t* stage_1_input[] = {edge0, edge1};
+	int32_t* stage_1_output[] = {edge7, edge8, edge9, edge10};
+	int32_t* stage_2_input[] = {edge2};
+	int32_t* stage_2_output[] = {edge3, edge4};
+	int32_t* stage_3_input[] = {edge4};
+	int32_t* stage_3_output[] = {edge5};
+	int32_t* stage_4_input[] = {edge3, edge5};
+	int32_t* stage_4_output[] = {edge6};
+	uint32_t start_ts, end_ts, start_control_ts, control_ticks;
+	bool control_done;
+	while(1) {
+	control_done = false;
+	chan_out_buf_word(c_dest[0], (void*)edge6, 1);
+	chan_out_buf_word(c_dest[0], (void*)edge7, 1);
+	chan_out_buf_word(c_dest[0], (void*)edge8, 1);
+	chan_out_buf_word(c_dest[0], (void*)edge9, 1);
+	chan_out_buf_word(c_dest[0], (void*)edge10, 1);
+	int read_count = 1;
+	SELECT_RES(
+		CASE_THEN(c_source[0], case_0),
+		DEFAULT_THEN(do_control)
+	) {
+		case_0: {
+			chan_in_buf_word(c_source[0], (void*)edge0, 1);
+			chan_in_buf_word(c_source[0], (void*)edge1, 1);
+			chan_in_buf_word(c_source[0], (void*)edge2, 1);
+			if(!--read_count) break;
+			else continue;
+		}
+		do_control: {
+		start_control_ts = get_reference_time();
+		dsp_thread_control(modules[0]->state, &modules[0]->control);
+		reverb_control(modules[3]->state, &modules[3]->control);
+		switch_control(modules[4]->state, &modules[4]->control);
+		control_done = true;
+		control_ticks = get_reference_time() - start_control_ts;
+		continue; }
+	}
+	if(!control_done){
+		start_control_ts = get_reference_time();
+		dsp_thread_control(modules[0]->state, &modules[0]->control);
+		reverb_control(modules[3]->state, &modules[3]->control);
+		switch_control(modules[4]->state, &modules[4]->control);
+		control_ticks = get_reference_time() - start_control_ts;
+	}
+	start_ts = get_reference_time();
+
+	fork_process(
+		stage_1_input,
+		stage_1_output,
+		modules[1]->state);
+	fork_process(
+		stage_2_input,
+		stage_2_output,
+		modules[2]->state);
+	reverb_process(
+		stage_3_input,
+		stage_3_output,
+		modules[3]->state);
+	switch_process(
+		stage_4_input,
+		stage_4_output,
+		modules[4]->state);
+
+	end_ts = get_reference_time();
+	uint32_t process_plus_control_ticks = (end_ts - start_ts) + control_ticks;
+	if(process_plus_control_ticks > ((dsp_thread_state_t*)(modules[0]->state))->max_cycles)
+	{
+		((dsp_thread_state_t*)(modules[0]->state))->max_cycles = process_plus_control_ticks;
+	}
+	}
+}
+DECLARE_JOB(dsp_auto_thread2, (chanend_t*, chanend_t*, module_instance_t**));
+void dsp_auto_thread2(chanend_t* c_source, chanend_t* c_dest, module_instance_t** modules) {
 	local_thread_mode_set_bits(thread_mode_high_priority);	int32_t edge0[1] = {0};
 	int32_t edge1[1] = {0};
 	int32_t edge2[1] = {0};
@@ -259,32 +323,28 @@ void dsp_auto_thread1(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 	int32_t edge14[1] = {0};
 	int32_t edge15[1] = {0};
 	int32_t edge16[1] = {0};
-	int32_t edge17[1] = {0};
-	int32_t edge18[1] = {0};
-	int32_t* stage_1_input[] = {edge0, edge1};
-	int32_t* stage_1_output[] = {edge7, edge8, edge9, edge10};
-	int32_t* stage_2_input[] = {edge2};
-	int32_t* stage_2_output[] = {edge3, edge4, edge5, edge6, edge15, edge16};
-	int32_t* stage_3_input[] = {edge8, edge3};
+	int32_t* stage_1_input[] = {edge0};
+	int32_t* stage_1_output[] = {edge5, edge6, edge7, edge8, edge13, edge14};
+	int32_t* stage_2_input[] = {edge2, edge5};
+	int32_t* stage_2_output[] = {edge9};
+	int32_t* stage_3_input[] = {edge4, edge6};
 	int32_t* stage_3_output[] = {edge11};
-	int32_t* stage_4_input[] = {edge10, edge4};
-	int32_t* stage_4_output[] = {edge13};
-	int32_t* stage_5_input[] = {edge7, edge11};
+	int32_t* stage_4_input[] = {edge1, edge9};
+	int32_t* stage_4_output[] = {edge10};
+	int32_t* stage_5_input[] = {edge3, edge11};
 	int32_t* stage_5_output[] = {edge12};
-	int32_t* stage_6_input[] = {edge9, edge13};
-	int32_t* stage_6_output[] = {edge14};
-	int32_t* stage_7_input[] = {edge12, edge5};
-	int32_t* stage_7_output[] = {edge17};
-	int32_t* stage_8_input[] = {edge14, edge6};
-	int32_t* stage_8_output[] = {edge18};
+	int32_t* stage_6_input[] = {edge10, edge7};
+	int32_t* stage_6_output[] = {edge15};
+	int32_t* stage_7_input[] = {edge12, edge8};
+	int32_t* stage_7_output[] = {edge16};
 	uint32_t start_ts, end_ts, start_control_ts, control_ticks;
 	bool control_done;
 	while(1) {
 	control_done = false;
+	chan_out_buf_word(c_dest[0], (void*)edge13, 1);
+	chan_out_buf_word(c_dest[0], (void*)edge14, 1);
 	chan_out_buf_word(c_dest[0], (void*)edge15, 1);
 	chan_out_buf_word(c_dest[0], (void*)edge16, 1);
-	chan_out_buf_word(c_dest[0], (void*)edge17, 1);
-	chan_out_buf_word(c_dest[0], (void*)edge18, 1);
 	int read_count = 1;
 	SELECT_RES(
 		CASE_THEN(c_source[0], case_0),
@@ -294,16 +354,18 @@ void dsp_auto_thread1(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 			chan_in_buf_word(c_source[0], (void*)edge0, 1);
 			chan_in_buf_word(c_source[0], (void*)edge1, 1);
 			chan_in_buf_word(c_source[0], (void*)edge2, 1);
+			chan_in_buf_word(c_source[0], (void*)edge3, 1);
+			chan_in_buf_word(c_source[0], (void*)edge4, 1);
 			if(!--read_count) break;
 			else continue;
 		}
 		do_control: {
 		start_control_ts = get_reference_time();
 		dsp_thread_control(modules[0]->state, &modules[0]->control);
+		compressor_sidechain_control(modules[2]->state, &modules[2]->control);
 		compressor_sidechain_control(modules[3]->state, &modules[3]->control);
-		compressor_sidechain_control(modules[4]->state, &modules[4]->control);
+		switch_control(modules[4]->state, &modules[4]->control);
 		switch_control(modules[5]->state, &modules[5]->control);
-		switch_control(modules[6]->state, &modules[6]->control);
 		control_done = true;
 		control_ticks = get_reference_time() - start_control_ts;
 		continue; }
@@ -311,10 +373,10 @@ void dsp_auto_thread1(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 	if(!control_done){
 		start_control_ts = get_reference_time();
 		dsp_thread_control(modules[0]->state, &modules[0]->control);
+		compressor_sidechain_control(modules[2]->state, &modules[2]->control);
 		compressor_sidechain_control(modules[3]->state, &modules[3]->control);
-		compressor_sidechain_control(modules[4]->state, &modules[4]->control);
+		switch_control(modules[4]->state, &modules[4]->control);
 		switch_control(modules[5]->state, &modules[5]->control);
-		switch_control(modules[6]->state, &modules[6]->control);
 		control_ticks = get_reference_time() - start_control_ts;
 	}
 	start_ts = get_reference_time();
@@ -323,7 +385,7 @@ void dsp_auto_thread1(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 		stage_1_input,
 		stage_1_output,
 		modules[1]->state);
-	fork_process(
+	compressor_sidechain_process(
 		stage_2_input,
 		stage_2_output,
 		modules[2]->state);
@@ -331,7 +393,7 @@ void dsp_auto_thread1(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 		stage_3_input,
 		stage_3_output,
 		modules[3]->state);
-	compressor_sidechain_process(
+	switch_process(
 		stage_4_input,
 		stage_4_output,
 		modules[4]->state);
@@ -339,7 +401,7 @@ void dsp_auto_thread1(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 		stage_5_input,
 		stage_5_output,
 		modules[5]->state);
-	switch_process(
+	adder_process(
 		stage_6_input,
 		stage_6_output,
 		modules[6]->state);
@@ -347,10 +409,6 @@ void dsp_auto_thread1(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 		stage_7_input,
 		stage_7_output,
 		modules[7]->state);
-	adder_process(
-		stage_8_input,
-		stage_8_output,
-		modules[8]->state);
 
 	end_ts = get_reference_time();
 	uint32_t process_plus_control_ticks = (end_ts - start_ts) + control_ticks;
@@ -360,8 +418,8 @@ void dsp_auto_thread1(chanend_t* c_source, chanend_t* c_dest, module_instance_t*
 	}
 	}
 }
-DECLARE_JOB(dsp_auto_thread2, (chanend_t*, chanend_t*, module_instance_t**));
-void dsp_auto_thread2(chanend_t* c_source, chanend_t* c_dest, module_instance_t** modules) {
+DECLARE_JOB(dsp_auto_thread3, (chanend_t*, chanend_t*, module_instance_t**));
+void dsp_auto_thread3(chanend_t* c_source, chanend_t* c_dest, module_instance_t** modules) {
 	local_thread_mode_set_bits(thread_mode_high_priority);	int32_t edge0[1] = {0};
 	int32_t edge1[1] = {0};
 	int32_t edge2[1] = {0};
@@ -505,8 +563,8 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
 
 	static channel_t adsp_auto_in_chans[1];
 	static channel_t adsp_auto_out_chans[1];
-	static channel_t adsp_auto_link_chans[2];
-	static module_instance_t adsp_auto_modules[36];
+	static channel_t adsp_auto_link_chans[3];
+	static module_instance_t adsp_auto_modules[37];
 	static adsp_mux_elem_t adsp_auto_in_mux_cfgs[] = {
 		{ .channel_idx = 0, .data_idx = 0, .frame_size = 1},
 		{ .channel_idx = 0, .data_idx = 1, .frame_size = 1},
@@ -530,15 +588,16 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
 	adsp_auto_out_chans[0] = chan_alloc();
 	adsp_auto_link_chans[0] = chan_alloc();
 	adsp_auto_link_chans[1] = chan_alloc();
+	adsp_auto_link_chans[2] = chan_alloc();
 	adsp_auto.p_in = (channel_t *) adsp_auto_in_chans;
 	adsp_auto.n_in = 1;
 	adsp_auto.p_out = (channel_t *) adsp_auto_out_chans;
 	adsp_auto.n_out = 1;
 	adsp_auto.p_link = (channel_t *) adsp_auto_link_chans;
-	adsp_auto.n_link = 2;
+	adsp_auto.n_link = 3;
 	adsp_auto.modules = adsp_auto_modules;
-	adsp_auto.n_modules = 36;
-	static pipeline_config_t config0 = { .checksum = {115, 252, 255, 27, 234, 246, 247, 46, 43, 143, 233, 171, 214, 80, 205, 237} };
+	adsp_auto.n_modules = 37;
+	static pipeline_config_t config0 = { .checksum = {166, 20, 92, 105, 47, 165, 206, 248, 16, 101, 71, 42, 12, 164, 55, 129} };
 
             static pipeline_state_t state0;
             static uint8_t memory0[_ADSP_MAX(1, PIPELINE_REQUIRED_MEMORY(0, 0, 1))];
@@ -736,9 +795,10 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
                 adsp_auto.modules[12].control.module_type = e_dsp_stage_switch;
                 adsp_auto.modules[12].control.num_control_commands = NUM_CMDS_SWITCH;
                 switch_init(&adsp_auto.modules[12], &allocator12, 12, 2, 1, 1);
+	static dsp_thread_config_t config13 = {  };
 
-            static fork_state_t state13;
-            static uint8_t memory13[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(1, 2, 1))];
+            static dsp_thread_state_t state13;
+            static uint8_t memory13[_ADSP_MAX(1, DSP_THREAD_REQUIRED_MEMORY(0, 0, 1))];
             static adsp_bump_allocator_t allocator13 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory13);
 
             adsp_auto.modules[13].state = (void*)&state13;
@@ -747,72 +807,13 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[13].control.id = 13;
             adsp_auto.modules[13].control.config_rw_state = config_none_pending;
             
-                adsp_auto.modules[13].control.config = NULL;
-                adsp_auto.modules[13].control.num_control_commands = 0;
-                fork_init(&adsp_auto.modules[13], &allocator13, 13, 1, 2, 1);
-
-            static bypass_state_t state14;
-            static uint8_t memory14[_ADSP_MAX(1, BYPASS_REQUIRED_MEMORY(1, 1, 1))];
-            static adsp_bump_allocator_t allocator14 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory14);
-
-            adsp_auto.modules[14].state = (void*)&state14;
-
-            // Control stuff
-            adsp_auto.modules[14].control.id = 14;
-            adsp_auto.modules[14].control.config_rw_state = config_none_pending;
-            
-                adsp_auto.modules[14].control.config = NULL;
-                adsp_auto.modules[14].control.num_control_commands = 0;
-                bypass_init(&adsp_auto.modules[14], &allocator14, 14, 1, 1, 1);
-	static switch_config_t config15 = { .position = 0 };
-
-            static switch_state_t state15;
-            static uint8_t memory15[_ADSP_MAX(1, SWITCH_REQUIRED_MEMORY(2, 1, 1))];
-            static adsp_bump_allocator_t allocator15 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory15);
-
-            adsp_auto.modules[15].state = (void*)&state15;
-
-            // Control stuff
-            adsp_auto.modules[15].control.id = 15;
-            adsp_auto.modules[15].control.config_rw_state = config_none_pending;
-            
-                adsp_auto.modules[15].control.config = (void*)&config15;
-                adsp_auto.modules[15].control.module_type = e_dsp_stage_switch;
-                adsp_auto.modules[15].control.num_control_commands = NUM_CMDS_SWITCH;
-                switch_init(&adsp_auto.modules[15], &allocator15, 15, 2, 1, 1);
-	static dsp_thread_config_t config16 = {  };
-
-            static dsp_thread_state_t state16;
-            static uint8_t memory16[_ADSP_MAX(1, DSP_THREAD_REQUIRED_MEMORY(0, 0, 1))];
-            static adsp_bump_allocator_t allocator16 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory16);
-
-            adsp_auto.modules[16].state = (void*)&state16;
-
-            // Control stuff
-            adsp_auto.modules[16].control.id = 16;
-            adsp_auto.modules[16].control.config_rw_state = config_none_pending;
-            
-                adsp_auto.modules[16].control.config = (void*)&config16;
-                adsp_auto.modules[16].control.module_type = e_dsp_stage_dsp_thread;
-                adsp_auto.modules[16].control.num_control_commands = NUM_CMDS_DSP_THREAD;
-                dsp_thread_init(&adsp_auto.modules[16], &allocator16, 16, 0, 0, 1);
-
-            static fork_state_t state18;
-            static uint8_t memory18[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(2, 4, 1))];
-            static adsp_bump_allocator_t allocator18 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory18);
-
-            adsp_auto.modules[18].state = (void*)&state18;
-
-            // Control stuff
-            adsp_auto.modules[18].control.id = 18;
-            adsp_auto.modules[18].control.config_rw_state = config_none_pending;
-            
-                adsp_auto.modules[18].control.config = NULL;
-                adsp_auto.modules[18].control.num_control_commands = 0;
-                fork_init(&adsp_auto.modules[18], &allocator18, 18, 2, 4, 1);
+                adsp_auto.modules[13].control.config = (void*)&config13;
+                adsp_auto.modules[13].control.module_type = e_dsp_stage_dsp_thread;
+                adsp_auto.modules[13].control.num_control_commands = NUM_CMDS_DSP_THREAD;
+                dsp_thread_init(&adsp_auto.modules[13], &allocator13, 13, 0, 0, 1);
 
             static fork_state_t state17;
-            static uint8_t memory17[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(1, 6, 1))];
+            static uint8_t memory17[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(2, 4, 1))];
             static adsp_bump_allocator_t allocator17 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory17);
 
             adsp_auto.modules[17].state = (void*)&state17;
@@ -823,11 +824,72 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             
                 adsp_auto.modules[17].control.config = NULL;
                 adsp_auto.modules[17].control.num_control_commands = 0;
-                fork_init(&adsp_auto.modules[17], &allocator17, 17, 1, 6, 1);
-	static compressor_sidechain_config_t config19 = { .attack_alpha = 8947849, .release_alpha = 178957, .threshold = 134217, .slope = 0.4 };
+                fork_init(&adsp_auto.modules[17], &allocator17, 17, 2, 4, 1);
 
-            static compressor_sidechain_state_t state19;
-            static uint8_t memory19[_ADSP_MAX(1, COMPRESSOR_SIDECHAIN_REQUIRED_MEMORY(2, 1, 1))];
+            static fork_state_t state14;
+            static uint8_t memory14[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(1, 2, 1))];
+            static adsp_bump_allocator_t allocator14 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory14);
+
+            adsp_auto.modules[14].state = (void*)&state14;
+
+            // Control stuff
+            adsp_auto.modules[14].control.id = 14;
+            adsp_auto.modules[14].control.config_rw_state = config_none_pending;
+            
+                adsp_auto.modules[14].control.config = NULL;
+                adsp_auto.modules[14].control.num_control_commands = 0;
+                fork_init(&adsp_auto.modules[14], &allocator14, 14, 1, 2, 1);
+	static reverb_config_t config15 = { .sampling_freq = 48000, .max_room_size = 1.0, .room_size = 0.5, .decay = 0.5, .damping = 0.4, .wet_gain = 1913946814, .dry_gain_db = -1, .pregain = 0.015 };
+
+            static reverb_state_t state15;
+            static uint8_t memory15[_ADSP_MAX(1, REVERB_REQUIRED_MEMORY(1, 1, 1))];
+            static adsp_bump_allocator_t allocator15 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory15);
+
+            adsp_auto.modules[15].state = (void*)&state15;
+
+            // Control stuff
+            adsp_auto.modules[15].control.id = 15;
+            adsp_auto.modules[15].control.config_rw_state = config_none_pending;
+            
+                adsp_auto.modules[15].control.config = (void*)&config15;
+                adsp_auto.modules[15].control.module_type = e_dsp_stage_reverb;
+                adsp_auto.modules[15].control.num_control_commands = NUM_CMDS_REVERB;
+                reverb_init(&adsp_auto.modules[15], &allocator15, 15, 1, 1, 1);
+	static switch_config_t config16 = { .position = 0 };
+
+            static switch_state_t state16;
+            static uint8_t memory16[_ADSP_MAX(1, SWITCH_REQUIRED_MEMORY(2, 1, 1))];
+            static adsp_bump_allocator_t allocator16 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory16);
+
+            adsp_auto.modules[16].state = (void*)&state16;
+
+            // Control stuff
+            adsp_auto.modules[16].control.id = 16;
+            adsp_auto.modules[16].control.config_rw_state = config_none_pending;
+            
+                adsp_auto.modules[16].control.config = (void*)&config16;
+                adsp_auto.modules[16].control.module_type = e_dsp_stage_switch;
+                adsp_auto.modules[16].control.num_control_commands = NUM_CMDS_SWITCH;
+                switch_init(&adsp_auto.modules[16], &allocator16, 16, 2, 1, 1);
+	static dsp_thread_config_t config18 = {  };
+
+            static dsp_thread_state_t state18;
+            static uint8_t memory18[_ADSP_MAX(1, DSP_THREAD_REQUIRED_MEMORY(0, 0, 1))];
+            static adsp_bump_allocator_t allocator18 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory18);
+
+            adsp_auto.modules[18].state = (void*)&state18;
+
+            // Control stuff
+            adsp_auto.modules[18].control.id = 18;
+            adsp_auto.modules[18].control.config_rw_state = config_none_pending;
+            
+                adsp_auto.modules[18].control.config = (void*)&config18;
+                adsp_auto.modules[18].control.module_type = e_dsp_stage_dsp_thread;
+                adsp_auto.modules[18].control.num_control_commands = NUM_CMDS_DSP_THREAD;
+                dsp_thread_init(&adsp_auto.modules[18], &allocator18, 18, 0, 0, 1);
+
+            static fork_state_t state19;
+            static uint8_t memory19[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(1, 6, 1))];
             static adsp_bump_allocator_t allocator19 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory19);
 
             adsp_auto.modules[19].state = (void*)&state19;
@@ -836,30 +898,13 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[19].control.id = 19;
             adsp_auto.modules[19].control.config_rw_state = config_none_pending;
             
-                adsp_auto.modules[19].control.config = (void*)&config19;
-                adsp_auto.modules[19].control.module_type = e_dsp_stage_compressor_sidechain;
-                adsp_auto.modules[19].control.num_control_commands = NUM_CMDS_COMPRESSOR_SIDECHAIN;
-                compressor_sidechain_init(&adsp_auto.modules[19], &allocator19, 19, 2, 1, 1);
-	static compressor_sidechain_config_t config21 = { .attack_alpha = 8947849, .release_alpha = 178957, .threshold = 134217, .slope = 0.4 };
+                adsp_auto.modules[19].control.config = NULL;
+                adsp_auto.modules[19].control.num_control_commands = 0;
+                fork_init(&adsp_auto.modules[19], &allocator19, 19, 1, 6, 1);
+	static compressor_sidechain_config_t config20 = { .attack_alpha = 8947849, .release_alpha = 178957, .threshold = 13421, .slope = 0.4 };
 
-            static compressor_sidechain_state_t state21;
-            static uint8_t memory21[_ADSP_MAX(1, COMPRESSOR_SIDECHAIN_REQUIRED_MEMORY(2, 1, 1))];
-            static adsp_bump_allocator_t allocator21 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory21);
-
-            adsp_auto.modules[21].state = (void*)&state21;
-
-            // Control stuff
-            adsp_auto.modules[21].control.id = 21;
-            adsp_auto.modules[21].control.config_rw_state = config_none_pending;
-            
-                adsp_auto.modules[21].control.config = (void*)&config21;
-                adsp_auto.modules[21].control.module_type = e_dsp_stage_compressor_sidechain;
-                adsp_auto.modules[21].control.num_control_commands = NUM_CMDS_COMPRESSOR_SIDECHAIN;
-                compressor_sidechain_init(&adsp_auto.modules[21], &allocator21, 21, 2, 1, 1);
-	static switch_config_t config20 = { .position = 0 };
-
-            static switch_state_t state20;
-            static uint8_t memory20[_ADSP_MAX(1, SWITCH_REQUIRED_MEMORY(2, 1, 1))];
+            static compressor_sidechain_state_t state20;
+            static uint8_t memory20[_ADSP_MAX(1, COMPRESSOR_SIDECHAIN_REQUIRED_MEMORY(2, 1, 1))];
             static adsp_bump_allocator_t allocator20 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory20);
 
             adsp_auto.modules[20].state = (void*)&state20;
@@ -869,13 +914,13 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[20].control.config_rw_state = config_none_pending;
             
                 adsp_auto.modules[20].control.config = (void*)&config20;
-                adsp_auto.modules[20].control.module_type = e_dsp_stage_switch;
-                adsp_auto.modules[20].control.num_control_commands = NUM_CMDS_SWITCH;
-                switch_init(&adsp_auto.modules[20], &allocator20, 20, 2, 1, 1);
-	static switch_config_t config22 = { .position = 0 };
+                adsp_auto.modules[20].control.module_type = e_dsp_stage_compressor_sidechain;
+                adsp_auto.modules[20].control.num_control_commands = NUM_CMDS_COMPRESSOR_SIDECHAIN;
+                compressor_sidechain_init(&adsp_auto.modules[20], &allocator20, 20, 2, 1, 1);
+	static compressor_sidechain_config_t config22 = { .attack_alpha = 8947849, .release_alpha = 178957, .threshold = 13421, .slope = 0.4 };
 
-            static switch_state_t state22;
-            static uint8_t memory22[_ADSP_MAX(1, SWITCH_REQUIRED_MEMORY(2, 1, 1))];
+            static compressor_sidechain_state_t state22;
+            static uint8_t memory22[_ADSP_MAX(1, COMPRESSOR_SIDECHAIN_REQUIRED_MEMORY(2, 1, 1))];
             static adsp_bump_allocator_t allocator22 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory22);
 
             adsp_auto.modules[22].state = (void*)&state22;
@@ -885,12 +930,29 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[22].control.config_rw_state = config_none_pending;
             
                 adsp_auto.modules[22].control.config = (void*)&config22;
-                adsp_auto.modules[22].control.module_type = e_dsp_stage_switch;
-                adsp_auto.modules[22].control.num_control_commands = NUM_CMDS_SWITCH;
-                switch_init(&adsp_auto.modules[22], &allocator22, 22, 2, 1, 1);
+                adsp_auto.modules[22].control.module_type = e_dsp_stage_compressor_sidechain;
+                adsp_auto.modules[22].control.num_control_commands = NUM_CMDS_COMPRESSOR_SIDECHAIN;
+                compressor_sidechain_init(&adsp_auto.modules[22], &allocator22, 22, 2, 1, 1);
+	static switch_config_t config21 = { .position = 0 };
 
-            static adder_state_t state23;
-            static uint8_t memory23[_ADSP_MAX(1, ADDER_REQUIRED_MEMORY(2, 1, 1))];
+            static switch_state_t state21;
+            static uint8_t memory21[_ADSP_MAX(1, SWITCH_REQUIRED_MEMORY(2, 1, 1))];
+            static adsp_bump_allocator_t allocator21 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory21);
+
+            adsp_auto.modules[21].state = (void*)&state21;
+
+            // Control stuff
+            adsp_auto.modules[21].control.id = 21;
+            adsp_auto.modules[21].control.config_rw_state = config_none_pending;
+            
+                adsp_auto.modules[21].control.config = (void*)&config21;
+                adsp_auto.modules[21].control.module_type = e_dsp_stage_switch;
+                adsp_auto.modules[21].control.num_control_commands = NUM_CMDS_SWITCH;
+                switch_init(&adsp_auto.modules[21], &allocator21, 21, 2, 1, 1);
+	static switch_config_t config23 = { .position = 0 };
+
+            static switch_state_t state23;
+            static uint8_t memory23[_ADSP_MAX(1, SWITCH_REQUIRED_MEMORY(2, 1, 1))];
             static adsp_bump_allocator_t allocator23 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory23);
 
             adsp_auto.modules[23].state = (void*)&state23;
@@ -899,9 +961,10 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[23].control.id = 23;
             adsp_auto.modules[23].control.config_rw_state = config_none_pending;
             
-                adsp_auto.modules[23].control.config = NULL;
-                adsp_auto.modules[23].control.num_control_commands = 0;
-                adder_init(&adsp_auto.modules[23], &allocator23, 23, 2, 1, 1);
+                adsp_auto.modules[23].control.config = (void*)&config23;
+                adsp_auto.modules[23].control.module_type = e_dsp_stage_switch;
+                adsp_auto.modules[23].control.num_control_commands = NUM_CMDS_SWITCH;
+                switch_init(&adsp_auto.modules[23], &allocator23, 23, 2, 1, 1);
 
             static adder_state_t state24;
             static uint8_t memory24[_ADSP_MAX(1, ADDER_REQUIRED_MEMORY(2, 1, 1))];
@@ -916,10 +979,9 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
                 adsp_auto.modules[24].control.config = NULL;
                 adsp_auto.modules[24].control.num_control_commands = 0;
                 adder_init(&adsp_auto.modules[24], &allocator24, 24, 2, 1, 1);
-	static dsp_thread_config_t config25 = {  };
 
-            static dsp_thread_state_t state25;
-            static uint8_t memory25[_ADSP_MAX(1, DSP_THREAD_REQUIRED_MEMORY(0, 0, 1))];
+            static adder_state_t state25;
+            static uint8_t memory25[_ADSP_MAX(1, ADDER_REQUIRED_MEMORY(2, 1, 1))];
             static adsp_bump_allocator_t allocator25 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory25);
 
             adsp_auto.modules[25].state = (void*)&state25;
@@ -928,13 +990,13 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[25].control.id = 25;
             adsp_auto.modules[25].control.config_rw_state = config_none_pending;
             
-                adsp_auto.modules[25].control.config = (void*)&config25;
-                adsp_auto.modules[25].control.module_type = e_dsp_stage_dsp_thread;
-                adsp_auto.modules[25].control.num_control_commands = NUM_CMDS_DSP_THREAD;
-                dsp_thread_init(&adsp_auto.modules[25], &allocator25, 25, 0, 0, 1);
+                adsp_auto.modules[25].control.config = NULL;
+                adsp_auto.modules[25].control.num_control_commands = 0;
+                adder_init(&adsp_auto.modules[25], &allocator25, 25, 2, 1, 1);
+	static dsp_thread_config_t config26 = {  };
 
-            static fork_state_t state26;
-            static uint8_t memory26[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(1, 2, 1))];
+            static dsp_thread_state_t state26;
+            static uint8_t memory26[_ADSP_MAX(1, DSP_THREAD_REQUIRED_MEMORY(0, 0, 1))];
             static adsp_bump_allocator_t allocator26 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory26);
 
             adsp_auto.modules[26].state = (void*)&state26;
@@ -943,9 +1005,10 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[26].control.id = 26;
             adsp_auto.modules[26].control.config_rw_state = config_none_pending;
             
-                adsp_auto.modules[26].control.config = NULL;
-                adsp_auto.modules[26].control.num_control_commands = 0;
-                fork_init(&adsp_auto.modules[26], &allocator26, 26, 1, 2, 1);
+                adsp_auto.modules[26].control.config = (void*)&config26;
+                adsp_auto.modules[26].control.module_type = e_dsp_stage_dsp_thread;
+                adsp_auto.modules[26].control.num_control_commands = NUM_CMDS_DSP_THREAD;
+                dsp_thread_init(&adsp_auto.modules[26], &allocator26, 26, 0, 0, 1);
 
             static fork_state_t state27;
             static uint8_t memory27[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(1, 2, 1))];
@@ -960,10 +1023,9 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
                 adsp_auto.modules[27].control.config = NULL;
                 adsp_auto.modules[27].control.num_control_commands = 0;
                 fork_init(&adsp_auto.modules[27], &allocator27, 27, 1, 2, 1);
-	static switch_config_t config28 = { .position = 0 };
 
-            static switch_state_t state28;
-            static uint8_t memory28[_ADSP_MAX(1, SWITCH_REQUIRED_MEMORY(2, 1, 1))];
+            static fork_state_t state28;
+            static uint8_t memory28[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(1, 2, 1))];
             static adsp_bump_allocator_t allocator28 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory28);
 
             adsp_auto.modules[28].state = (void*)&state28;
@@ -972,10 +1034,9 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[28].control.id = 28;
             adsp_auto.modules[28].control.config_rw_state = config_none_pending;
             
-                adsp_auto.modules[28].control.config = (void*)&config28;
-                adsp_auto.modules[28].control.module_type = e_dsp_stage_switch;
-                adsp_auto.modules[28].control.num_control_commands = NUM_CMDS_SWITCH;
-                switch_init(&adsp_auto.modules[28], &allocator28, 28, 2, 1, 1);
+                adsp_auto.modules[28].control.config = NULL;
+                adsp_auto.modules[28].control.num_control_commands = 0;
+                fork_init(&adsp_auto.modules[28], &allocator28, 28, 1, 2, 1);
 	static switch_config_t config29 = { .position = 0 };
 
             static switch_state_t state29;
@@ -992,10 +1053,10 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
                 adsp_auto.modules[29].control.module_type = e_dsp_stage_switch;
                 adsp_auto.modules[29].control.num_control_commands = NUM_CMDS_SWITCH;
                 switch_init(&adsp_auto.modules[29], &allocator29, 29, 2, 1, 1);
-	static volume_control_config_t config30 = { .target_gain = 134217728, .slew_shift = 7, .mute = 0 };
+	static switch_config_t config30 = { .position = 0 };
 
-            static volume_control_state_t state30;
-            static uint8_t memory30[_ADSP_MAX(1, VOLUME_CONTROL_REQUIRED_MEMORY(2, 2, 1))];
+            static switch_state_t state30;
+            static uint8_t memory30[_ADSP_MAX(1, SWITCH_REQUIRED_MEMORY(2, 1, 1))];
             static adsp_bump_allocator_t allocator30 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory30);
 
             adsp_auto.modules[30].state = (void*)&state30;
@@ -1005,9 +1066,9 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[30].control.config_rw_state = config_none_pending;
             
                 adsp_auto.modules[30].control.config = (void*)&config30;
-                adsp_auto.modules[30].control.module_type = e_dsp_stage_volume_control;
-                adsp_auto.modules[30].control.num_control_commands = NUM_CMDS_VOLUME_CONTROL;
-                volume_control_init(&adsp_auto.modules[30], &allocator30, 30, 2, 2, 1);
+                adsp_auto.modules[30].control.module_type = e_dsp_stage_switch;
+                adsp_auto.modules[30].control.num_control_commands = NUM_CMDS_SWITCH;
+                switch_init(&adsp_auto.modules[30], &allocator30, 30, 2, 1, 1);
 	static volume_control_config_t config31 = { .target_gain = 134217728, .slew_shift = 7, .mute = 0 };
 
             static volume_control_state_t state31;
@@ -1024,9 +1085,10 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
                 adsp_auto.modules[31].control.module_type = e_dsp_stage_volume_control;
                 adsp_auto.modules[31].control.num_control_commands = NUM_CMDS_VOLUME_CONTROL;
                 volume_control_init(&adsp_auto.modules[31], &allocator31, 31, 2, 2, 1);
+	static volume_control_config_t config32 = { .target_gain = 134217728, .slew_shift = 7, .mute = 0 };
 
-            static fork_state_t state32;
-            static uint8_t memory32[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(1, 2, 1))];
+            static volume_control_state_t state32;
+            static uint8_t memory32[_ADSP_MAX(1, VOLUME_CONTROL_REQUIRED_MEMORY(2, 2, 1))];
             static adsp_bump_allocator_t allocator32 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory32);
 
             adsp_auto.modules[32].state = (void*)&state32;
@@ -1035,27 +1097,13 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[32].control.id = 32;
             adsp_auto.modules[32].control.config_rw_state = config_none_pending;
             
-                adsp_auto.modules[32].control.config = NULL;
-                adsp_auto.modules[32].control.num_control_commands = 0;
-                fork_init(&adsp_auto.modules[32], &allocator32, 32, 1, 2, 1);
+                adsp_auto.modules[32].control.config = (void*)&config32;
+                adsp_auto.modules[32].control.module_type = e_dsp_stage_volume_control;
+                adsp_auto.modules[32].control.num_control_commands = NUM_CMDS_VOLUME_CONTROL;
+                volume_control_init(&adsp_auto.modules[32], &allocator32, 32, 2, 2, 1);
 
-            static fork_state_t state34;
-            static uint8_t memory34[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(2, 4, 1))];
-            static adsp_bump_allocator_t allocator34 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory34);
-
-            adsp_auto.modules[34].state = (void*)&state34;
-
-            // Control stuff
-            adsp_auto.modules[34].control.id = 34;
-            adsp_auto.modules[34].control.config_rw_state = config_none_pending;
-            
-                adsp_auto.modules[34].control.config = NULL;
-                adsp_auto.modules[34].control.num_control_commands = 0;
-                fork_init(&adsp_auto.modules[34], &allocator34, 34, 2, 4, 1);
-	static envelope_detector_rms_config_t config33 = { .attack_alpha = 1789570, .release_alpha = 596523 };
-
-            static envelope_detector_rms_state_t state33;
-            static uint8_t memory33[_ADSP_MAX(1, ENVELOPE_DETECTOR_RMS_REQUIRED_MEMORY(1, 0, 1))];
+            static fork_state_t state33;
+            static uint8_t memory33[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(1, 2, 1))];
             static adsp_bump_allocator_t allocator33 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory33);
 
             adsp_auto.modules[33].state = (void*)&state33;
@@ -1064,14 +1112,12 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[33].control.id = 33;
             adsp_auto.modules[33].control.config_rw_state = config_none_pending;
             
-                adsp_auto.modules[33].control.config = (void*)&config33;
-                adsp_auto.modules[33].control.module_type = e_dsp_stage_envelope_detector_rms;
-                adsp_auto.modules[33].control.num_control_commands = NUM_CMDS_ENVELOPE_DETECTOR_RMS;
-                envelope_detector_rms_init(&adsp_auto.modules[33], &allocator33, 33, 1, 0, 1);
-	static mixer_config_t config35 = { .gain = 67268211 };
+                adsp_auto.modules[33].control.config = NULL;
+                adsp_auto.modules[33].control.num_control_commands = 0;
+                fork_init(&adsp_auto.modules[33], &allocator33, 33, 1, 2, 1);
 
-            static mixer_state_t state35;
-            static uint8_t memory35[_ADSP_MAX(1, MIXER_REQUIRED_MEMORY(2, 1, 1))];
+            static fork_state_t state35;
+            static uint8_t memory35[_ADSP_MAX(1, FORK_REQUIRED_MEMORY(2, 4, 1))];
             static adsp_bump_allocator_t allocator35 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory35);
 
             adsp_auto.modules[35].state = (void*)&state35;
@@ -1080,10 +1126,41 @@ adsp_pipeline_t * adsp_auto_pipeline_init() {
             adsp_auto.modules[35].control.id = 35;
             adsp_auto.modules[35].control.config_rw_state = config_none_pending;
             
-                adsp_auto.modules[35].control.config = (void*)&config35;
-                adsp_auto.modules[35].control.module_type = e_dsp_stage_mixer;
-                adsp_auto.modules[35].control.num_control_commands = NUM_CMDS_MIXER;
-                mixer_init(&adsp_auto.modules[35], &allocator35, 35, 2, 1, 1);
+                adsp_auto.modules[35].control.config = NULL;
+                adsp_auto.modules[35].control.num_control_commands = 0;
+                fork_init(&adsp_auto.modules[35], &allocator35, 35, 2, 4, 1);
+	static envelope_detector_rms_config_t config34 = { .attack_alpha = 1789570, .release_alpha = 596523 };
+
+            static envelope_detector_rms_state_t state34;
+            static uint8_t memory34[_ADSP_MAX(1, ENVELOPE_DETECTOR_RMS_REQUIRED_MEMORY(1, 0, 1))];
+            static adsp_bump_allocator_t allocator34 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory34);
+
+            adsp_auto.modules[34].state = (void*)&state34;
+
+            // Control stuff
+            adsp_auto.modules[34].control.id = 34;
+            adsp_auto.modules[34].control.config_rw_state = config_none_pending;
+            
+                adsp_auto.modules[34].control.config = (void*)&config34;
+                adsp_auto.modules[34].control.module_type = e_dsp_stage_envelope_detector_rms;
+                adsp_auto.modules[34].control.num_control_commands = NUM_CMDS_ENVELOPE_DETECTOR_RMS;
+                envelope_detector_rms_init(&adsp_auto.modules[34], &allocator34, 34, 1, 0, 1);
+	static mixer_config_t config36 = { .gain = 67268211 };
+
+            static mixer_state_t state36;
+            static uint8_t memory36[_ADSP_MAX(1, MIXER_REQUIRED_MEMORY(2, 1, 1))];
+            static adsp_bump_allocator_t allocator36 = ADSP_BUMP_ALLOCATOR_INITIALISER(memory36);
+
+            adsp_auto.modules[36].state = (void*)&state36;
+
+            // Control stuff
+            adsp_auto.modules[36].control.id = 36;
+            adsp_auto.modules[36].control.config_rw_state = config_none_pending;
+            
+                adsp_auto.modules[36].control.config = (void*)&config36;
+                adsp_auto.modules[36].control.module_type = e_dsp_stage_mixer;
+                adsp_auto.modules[36].control.num_control_commands = NUM_CMDS_MIXER;
+                mixer_init(&adsp_auto.modules[36], &allocator36, 36, 2, 1, 1);
 	return &adsp_auto;
 }
 
@@ -1102,31 +1179,37 @@ void adsp_auto_pipeline_main(adsp_pipeline_t* adsp) {
 		&adsp->modules[10],
 		&adsp->modules[11],
 		&adsp->modules[12],
-		&adsp->modules[13],
-		&adsp->modules[14],
-		&adsp->modules[15],
 	};
 	chanend_t thread_0_inputs[] = {
 		adsp->p_in[0].end_b};
 	chanend_t thread_0_outputs[] = {
 		adsp->p_link[0].end_a};
 	module_instance_t* thread_1_modules[] = {
-		&adsp->modules[16],
-		&adsp->modules[18],
+		&adsp->modules[13],
 		&adsp->modules[17],
-		&adsp->modules[19],
-		&adsp->modules[21],
-		&adsp->modules[20],
-		&adsp->modules[22],
-		&adsp->modules[23],
-		&adsp->modules[24],
+		&adsp->modules[14],
+		&adsp->modules[15],
+		&adsp->modules[16],
 	};
 	chanend_t thread_1_inputs[] = {
 		adsp->p_link[0].end_b};
 	chanend_t thread_1_outputs[] = {
 		adsp->p_link[1].end_a};
 	module_instance_t* thread_2_modules[] = {
+		&adsp->modules[18],
+		&adsp->modules[19],
+		&adsp->modules[20],
+		&adsp->modules[22],
+		&adsp->modules[21],
+		&adsp->modules[23],
+		&adsp->modules[24],
 		&adsp->modules[25],
+	};
+	chanend_t thread_2_inputs[] = {
+		adsp->p_link[1].end_b};
+	chanend_t thread_2_outputs[] = {
+		adsp->p_link[2].end_a};
+	module_instance_t* thread_3_modules[] = {
 		&adsp->modules[26],
 		&adsp->modules[27],
 		&adsp->modules[28],
@@ -1134,17 +1217,19 @@ void adsp_auto_pipeline_main(adsp_pipeline_t* adsp) {
 		&adsp->modules[30],
 		&adsp->modules[31],
 		&adsp->modules[32],
-		&adsp->modules[34],
 		&adsp->modules[33],
 		&adsp->modules[35],
+		&adsp->modules[34],
+		&adsp->modules[36],
 	};
-	chanend_t thread_2_inputs[] = {
-		adsp->p_link[1].end_b};
-	chanend_t thread_2_outputs[] = {
+	chanend_t thread_3_inputs[] = {
+		adsp->p_link[2].end_b};
+	chanend_t thread_3_outputs[] = {
 		adsp->p_out[0].end_a};
 	PAR_JOBS(
 		PJOB(dsp_auto_thread0, (thread_0_inputs, thread_0_outputs, thread_0_modules)),
 		PJOB(dsp_auto_thread1, (thread_1_inputs, thread_1_outputs, thread_1_modules)),
-		PJOB(dsp_auto_thread2, (thread_2_inputs, thread_2_outputs, thread_2_modules))
+		PJOB(dsp_auto_thread2, (thread_2_inputs, thread_2_outputs, thread_2_modules)),
+		PJOB(dsp_auto_thread3, (thread_3_inputs, thread_3_outputs, thread_3_modules))
 	);
 }
