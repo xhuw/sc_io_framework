@@ -74,7 +74,7 @@ void vu_to_console(unsigned levels[2]){
 
 void print_adc_vals(unsigned qadc[NUM_ADC_POTS]){
     for(int i = 0; i < NUM_ADC_POTS; i++){
-        printf("ADC%d: %u%s", i, qadc[i], i < (NUM_ADC_POTS - 1) ? ", " : "\n");    
+        printf("ADC%d: %u%s", i, qadc[i], i < (NUM_ADC_POTS - 1) ? ", " : "\n");
     }
 }
 
@@ -93,7 +93,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
     const unsigned length = VU_NUM_PIXELS * 2;
     neopixel_init(np_state, length, p_neopixel, cb_neo, 3);
     unsigned levels[2];
-        
+
 
     // UART data
     const uint8_t msg[] = "Hello world!\n";
@@ -121,8 +121,8 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
     unsigned qadc[NUM_ADC_POTS] = {0};
 
     // Buttons state
-    unsigned button_state_old[3] = {1, 1, 1}; // Active low 
-    unsigned button_action[3] = {0, 0, 0}; // Inactive 
+    unsigned button_state_old[3] = {1, 1, 1}; // Active low
+    unsigned button_action[3] = {0, 0, 0}; // Inactive
 
     unsigned loop_counter = 0;
     unsigned blinky_state = 0;
@@ -136,7 +136,7 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
         }
         // print_adc_vals(qadc); // Debug - uncomment to see raw ADC values
 
-        // Convert to volume signals  
+        // Convert to volume signals
         dsp_input.mic_vol = control_to_volume_setting(qadc[0]);
         dsp_input.music_vol = control_to_volume_setting(qadc[1]);
         dsp_input.monitor_vol = control_to_volume_setting(qadc[2]);
@@ -145,6 +145,9 @@ void gpio_control_task( client uart_tx_if i_uart_tx,
 
         // Do the control input/output transaction
         dsp_output = i_adsp_control.do_control(dsp_input);
+
+        // print out dsp thread tick consumption.
+        // printf("thread ticks %5lu %5lu %5lu %5lu\n", dsp_output.max_thread_ticks[0], dsp_output.max_thread_ticks[1], dsp_output.max_thread_ticks[2], dsp_output.max_thread_ticks[3]);
 
         // Convert envelopes to VU
         levels[1] = envelope_to_vu(dsp_output.headphone_envelope);
